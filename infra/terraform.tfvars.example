@@ -1,0 +1,100 @@
+# Copy to terraform.tfvars and adjust.   cp terraform.tfvars.example terraform.tfvars
+# Only team_name is required. Everything else has workshop defaults.
+
+team_name = "neon-ninjas" # lowercase letters, digits, hyphens (2-20 chars)
+
+# Optional: otherwise export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+# subscription_id = "00000000-0000-0000-0000-000000000000"
+
+location = "swedencentral"
+# resource_group_name = "rg-tokenwars-neon-ninjas"
+
+# --- Microsoft Foundry ------------------------------------------------------------
+# A Foundry resource (AIServices + project management) and a project are created; open https://ai.azure.com.
+# foundry_project_name = "proj-tokenwars"
+# Host in models.json: "foundry" = <name>.services.ai.azure.com (default), "openai" = <name>.openai.azure.com (fallback)
+# ai_endpoint_style = "foundry"
+
+# --- Leaderboard (values from your coach) -----------------------------------
+leaderboard_url = "https://tokenwars-leaderboard.orangesmoke-40cfa083.spaincentral.azurecontainerapps.io/"
+leaderboard_key = "tokenwars"
+
+# --- Models -------------------------------------------------------------------
+# Defaults: gpt-5.6-sol (2026-07-09), gpt-5.6-terra (2026-07-09), gpt-5.6-luna (2026-07-09),
+# judge = gpt-5.5 (2026-04-24, independent evaluator), text-embedding-3-small, Llama-3.3-70B-Instruct.
+# GPT-5.6 answer models and the GPT-5.5 judge are written to models.json with
+# max_tokens_param = "max_completion_tokens", supports_temperature = false, extra_body = { reasoning_effort = "none" }.
+#
+# Verify availability/quota in your region first:
+#   az cognitiveservices model list --location swedencentral --query "[].{name:model.name, version:model.version, format:model.format}" -o table
+#   az cognitiveservices usage list --location swedencentral -o table
+# Capacity = thousands of tokens per minute (TPM). The baseline is token-hungry: keep the premium capacity high
+# (or lower "concurrency" in strategy.json if your quota is small).
+# premium_model   = { capacity = 800 }
+# balanced_model  = { capacity = 800 }
+# economy_model   = { capacity = 800 }
+# judge_model     = { capacity = 800 }   # separate GPT-5.5 deployment; not the balanced answer model
+# embedding_model = { sku = "Standard", capacity = 150 }   # if GlobalStandard is not offered for embeddings
+# open_model      = { name = "Llama-3.3-70B-Instruct", format = "Meta", capacity = 100 }
+# deploy_open_model = true
+#
+# Reasoning effort per tier (reasoning tokens are billed as OUTPUT tokens - keep "none"/"low" for cheap tiers):
+# premium_model = { extra_body = { reasoning_effort = "low" } }
+#
+# ALTERNATIVE: GPT-4.1 family (only if your subscription still has access - deprecated for new customers in 2026,
+# gpt-4.1-nano retires 2026-10-14). pricing.json still contains the gpt-4.1* keys.
+# premium_model   = { name = "gpt-4.1",      version = "2025-04-14", pricing_key = "gpt-4.1",      max_tokens_param = "max_tokens", supports_temperature = true, extra_body = {} }
+# balanced_model  = { name = "gpt-4.1-mini", version = "2025-04-14", pricing_key = "gpt-4.1-mini", max_tokens_param = "max_tokens", supports_temperature = true, extra_body = {} }
+# economy_model   = { name = "gpt-4.1-nano", version = "2025-04-14", pricing_key = "gpt-4.1-nano", max_tokens_param = "max_tokens", supports_temperature = true, extra_body = {} }
+# Keep judge_model on the pinned GPT-5.5 default even when changing answer tiers.
+
+# --- Required AI gateway (Challenge 3 adds governance and failover) ------------
+deploy_apim = true
+apim_sku    = "StandardV2_1" # v2 tiers support llm-token-limit + llm-emit-token-metric
+# apim_policy_file               = "policies/ai-gateway-solution.xml"       # coach / reference solution
+# apim_policy_file               = "policies/ai-gateway-multiprovider.xml"  # Challenge 3.6 stretch (needs deploy_fireworks = true)
+# apim_consumers                 = ["checkout-squad", "support-squad"]
+# tokens_per_minute_per_consumer = 20000
+
+# --- Challenge 2: self-hosted small model (Ollama on Container Apps, CPU) -----
+deploy_selfhosted_model = false
+# selfhosted_model        = "llama3.2:3b"
+# selfhosted_cpu          = 4
+# selfhosted_memory       = "8Gi"
+
+# --- Failover demo: second Foundry resource behind an APIM backend pool ----------
+deploy_secondary_region = false
+# secondary_location      = "francecentral"
+# secondary_capacity      = 800
+
+# --- Challenge 2.4: Fireworks on Foundry (optional, PAY-PER-TOKEN only) -------
+# Do this during SETUP: subscription opt-in (up to 30 min) + deployment (up to 30 min).
+#   1. ./scripts/check-fireworks-prereqs.sh --register      (PowerShell: ./scripts/check-fireworks-prereqs.ps1 -Register)
+#   2. re-run the script until it reports 0 blockers
+#   3. set deploy_fireworks = true and terraform apply
+# Data Zone Standard pay-per-token is US-only (eastus, eastus2, centralus, northcentralus, westus, westus3) and
+# Fireworks on Foundry is currently excluded from the EU Data Boundary. Writes the models.json key fw and
+# FIREWORKS_AI_API_KEY to .env.
+deploy_fireworks = false
+# fireworks_location = "eastus2"
+# fireworks_models = {
+#   fw = {
+#     model       = "FW-GLM-5.3-Flash"
+#     sku         = "GlobalStandard"
+#     pricing_key = "fw-glm-5.3-flash"
+#     capacity    = 200                                    # TPM in thousands
+#     # extra_body    = { prompt_cache_key = "bytecart-support" }   # default
+#     # extra_headers = { "x-session-affinity" = "bytecart" }
+#   }
+#   # Alternatives (Global Standard): FW-DeepSeek-V4.1-Flash, FW-Kimi-K3
+#   # Data Zone Standard: FW-Nemotron-Lightning-3.5-30B-A3B, FW-GLM-5.3, FW-GLM-5.2-Fast, FW-MiniMax-M3
+#   # (add a matching pricing key to shared/config/pricing.json)
+# }
+# fireworks_model_format        = "Fireworks"      # VALIDATE with the prereq script output
+# fireworks_grant_deployer_role = true             # if the deployment fails with Forbidden
+# fireworks_deployer_role       = "Foundry Owner"  # or "Azure AI Owner" (old name, same role)
+#
+# Challenge 3.6 (stretch): failover only; provider routing is built in (needs deploy_fireworks)
+# apim_policy_file       = "policies/ai-gateway-multiprovider.xml"
+# fireworks_backend_auth = "api_key"                # or "managed_identity"
+# failover_model_map     = { "gpt-5.6-terra" = "FW-GLM-5.3-Flash", "gpt-5.6-sol" = "FW-GLM-5.3-Flash" }   # default

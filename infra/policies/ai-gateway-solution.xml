@@ -1,0 +1,107 @@
+<policies>
+  <!--
+    Token Wars - required model gateway (SOLUTION, TODO 3.5 complete).
+    Provider routing is built in; Challenge 3.6 adds only Azure-to-Fireworks failover.
+    Apply: terraform apply -var 'apim_policy_file=policies/ai-gateway-solution.xml'
+  -->
+  <inbound>
+    <base />
+    <set-variable name="tw-model" value="@{
+        if (context.Operation.Id == &quot;list-models&quot;) { return &quot;unknown&quot;; }
+        var body = context.Request.Body?.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+        return body?[&quot;model&quot;]?.ToString() ?? &quot;unknown&quot;;
+    }" />
+    <set-variable name="tw-provider" value="@{
+        var model = (string)context.Variables[&quot;tw-model&quot;];%{ for model in fireworks_models }
+        if (model == ${replace(jsonencode(model), "\"", "&quot;")}) { return &quot;fireworks&quot;; }%{ endfor }%{ if selfhosted_enabled }
+        if (model == ${replace(jsonencode(selfhosted_model), "\"", "&quot;")}) { return &quot;selfhosted&quot;; }%{ endif }
+        return &quot;azure-openai&quot;;
+    }" />
+    <set-variable name="tw-azure-backend" value="@{
+        var model = (string)context.Variables[&quot;tw-model&quot;];%{ for model in pool_models }
+        if (model == ${replace(jsonencode(model), "\"", "&quot;")}) { return &quot;${pool_backend_id}&quot;; }%{ endfor }
+        return &quot;${backend_id}&quot;;
+    }" />
+%{ if length(fireworks_models) > 0 || selfhosted_enabled }
+    <choose>%{ if length(fireworks_models) > 0 }
+      <when condition="@((string)context.Variables[&quot;tw-provider&quot;] == &quot;fireworks&quot;)">
+        <set-backend-service backend-id="${fireworks_backend_id}" />%{ if fireworks_auth == "managed_identity" }
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />%{ else }
+        <set-header name="Authorization" exists-action="delete" />%{ endif }
+      </when>%{ endif }%{ if selfhosted_enabled }
+      <when condition="@((string)context.Variables[&quot;tw-provider&quot;] == &quot;selfhosted&quot;)">
+        <set-backend-service backend-id="${selfhosted_backend_id}" />
+        <set-header name="Authorization" exists-action="delete" />
+      </when>%{ endif }
+      <otherwise>
+        <!-- SOLUTION 3.5c: only Azure uses the regional failover pool. -->
+        <set-backend-service backend-id="@((string)context.Variables[&quot;tw-azure-backend&quot;])" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+      </otherwise>
+    </choose>
+%{ else }
+    <set-backend-service backend-id="@((string)context.Variables[&quot;tw-azure-backend&quot;])" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+%{ endif }
+    <set-header name="api-key" exists-action="delete" />
+    <set-query-parameter name="api-key" exists-action="delete" />
+
+    <choose>
+      <when condition="@(context.Operation.Id == &quot;chat-completions&quot;)">
+        <!-- SOLUTION 3.5a: one chat budget shared by all providers for each subscription. -->
+        <llm-token-limit counter-key="@(context.Subscription.Id)"
+                         tokens-per-minute="${tokens_per_minute}"
+                         estimate-prompt-tokens="false"
+                         remaining-tokens-header-name="x-ratelimit-remaining-tokens"
+                         tokens-consumed-header-name="x-tokens-consumed" />
+        <!-- SOLUTION 3.5b: metrics by consumer and requested provider/model. -->
+        <llm-emit-token-metric namespace="tokenwars">
+          <dimension name="Subscription ID" />
+          <dimension name="team" value="@(context.Subscription.Name)" />
+          <dimension name="provider" value="@((string)context.Variables[&quot;tw-provider&quot;])" />
+          <dimension name="API ID" />
+          <dimension name="Model" value="@((string)context.Variables[&quot;tw-model&quot;])" />
+        </llm-emit-token-metric>
+      </when>
+    </choose>
+  </inbound>
+  <backend>
+    <!-- SOLUTION 3.5c: Azure retries reselect from its pool; other providers retry their own backend. -->
+    <retry condition="@(context.Response != null &amp;&amp; (context.Response.StatusCode == 429 || context.Response.StatusCode &gt;= 500))"
+           count="2" interval="1" max-interval="8" delta="2" first-fast-retry="true">
+      <forward-request buffer-request-body="true" timeout="120" />
+    </retry>
+  </backend>
+  <outbound>
+    <base />
+    <set-header name="x-tokenwars-provider" exists-action="override">
+      <value>@((string)context.Variables["tw-provider"])</value>
+    </set-header>
+    <set-header name="x-tokenwars-model" exists-action="override">
+      <value>@((string)context.Variables["tw-model"])</value>
+    </set-header>
+    <set-header name="x-tokenwars-backend" exists-action="override">
+      <value>@(context.Request.Url.Host)</value>
+    </set-header>
+    <!-- Exact final-response usage also covers embeddings, without applying chat-only LLM policies to them. -->
+    <set-variable name="tw-total-tokens" value="@{
+        var contentType = context.Response.Headers.GetValueOrDefault(&quot;Content-Type&quot;, &quot;&quot;);
+        if (!contentType.Contains(&quot;json&quot;)) { return -1d; }
+        var body = context.Response.Body?.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+        return (double)((double?)body?[&quot;usage&quot;]?[&quot;total_tokens&quot;] ?? -1d);
+    }" />
+    <choose>
+      <when condition="@((double)context.Variables[&quot;tw-total-tokens&quot;] &gt;= 0)">
+        <emit-metric name="Provider Tokens" namespace="tokenwars" value="@((double)context.Variables[&quot;tw-total-tokens&quot;])">
+          <dimension name="Subscription ID" />
+          <dimension name="team" value="@(context.Subscription.Name)" />
+          <dimension name="provider" value="@((string)context.Variables[&quot;tw-provider&quot;])" />
+          <dimension name="Model" value="@((string)context.Variables[&quot;tw-model&quot;])" />
+        </emit-metric>
+      </when>
+    </choose>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

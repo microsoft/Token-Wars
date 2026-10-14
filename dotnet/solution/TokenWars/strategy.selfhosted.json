@@ -1,0 +1,17 @@
+{
+  "compact_prompt": true,
+  "prompt_cache_friendly": true,
+  "retrieval": "keyword",
+  "top_k": 2,
+  "order_lookup": true,
+  "max_output_tokens": 96,
+  "exact_cache": false,
+  "semantic_cache": false,
+  "semantic_cache_threshold": 0.92,
+  "default_model": "selfhosted",
+  "routing": "none",
+  "escalation": false,
+  "use_gateway": true,
+  "retry_on_throttle": false,
+  "concurrency": 1
+}

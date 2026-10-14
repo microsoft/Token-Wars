@@ -1,0 +1,99 @@
+<policies>
+  <!--
+    Token Wars - required model gateway (STARTER).
+    Model-based routing and provider metrics work before Challenge 3.
+    Only the judge calls its endpoint directly.
+
+    TODO 3.5a: add a per-subscription llm-token-limit inside the chat-completions branch.
+    TODO 3.5b: enrich llm metrics with API ID / Model and inspect the team/provider dashboard.
+    TODO 3.5c: select the pool for replicated answer tiers and add retry around forward-request.
+    Keep use_gateway = true. Apply the edited template with terraform apply.
+  -->
+  <inbound>
+    <base />
+    <set-variable name="tw-model" value="@{
+        if (context.Operation.Id == &quot;list-models&quot;) { return &quot;unknown&quot;; }
+        var body = context.Request.Body?.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+        return body?[&quot;model&quot;]?.ToString() ?? &quot;unknown&quot;;
+    }" />
+    <set-variable name="tw-provider" value="@{
+        var model = (string)context.Variables[&quot;tw-model&quot;];%{ for model in fireworks_models }
+        if (model == ${replace(jsonencode(model), "\"", "&quot;")}) { return &quot;fireworks&quot;; }%{ endfor }%{ if selfhosted_enabled }
+        if (model == ${replace(jsonencode(selfhosted_model), "\"", "&quot;")}) { return &quot;selfhosted&quot;; }%{ endif }
+        return &quot;azure-openai&quot;;
+    }" />
+    <!-- TODO 3.5c: select the pool only for pool_models; embeddings/open/custom stay on primary. -->
+    <set-variable name="tw-azure-backend" value="${backend_id}" />
+%{ if length(fireworks_models) > 0 || selfhosted_enabled }
+    <choose>%{ if length(fireworks_models) > 0 }
+      <when condition="@((string)context.Variables[&quot;tw-provider&quot;] == &quot;fireworks&quot;)">
+        <set-backend-service backend-id="${fireworks_backend_id}" />%{ if fireworks_auth == "managed_identity" }
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />%{ else }
+        <set-header name="Authorization" exists-action="delete" />%{ endif }
+      </when>%{ endif }%{ if selfhosted_enabled }
+      <when condition="@((string)context.Variables[&quot;tw-provider&quot;] == &quot;selfhosted&quot;)">
+        <set-backend-service backend-id="${selfhosted_backend_id}" />
+        <set-header name="Authorization" exists-action="delete" />
+      </when>%{ endif }
+      <otherwise>
+        <set-backend-service backend-id="@((string)context.Variables[&quot;tw-azure-backend&quot;])" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+      </otherwise>
+    </choose>
+%{ else }
+    <set-backend-service backend-id="@((string)context.Variables[&quot;tw-azure-backend&quot;])" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+%{ endif }
+    <set-header name="api-key" exists-action="delete" />
+    <set-query-parameter name="api-key" exists-action="delete" />
+
+    <!-- LLM policies support chat schemas; embeddings use the generic outbound usage metric below. -->
+    <choose>
+      <when condition="@(context.Operation.Id == &quot;chat-completions&quot;)">
+        <!-- TODO 3.5a: llm-token-limit, counter-key="@(context.Subscription.Id)",
+             tokens-per-minute="${tokens_per_minute}", estimate-prompt-tokens="false",
+             remaining-tokens-header-name="x-ratelimit-remaining-tokens",
+             tokens-consumed-header-name="x-tokens-consumed". -->
+        <!-- TODO 3.5b: retain these dimensions and add API ID plus Model = tw-model. -->
+        <llm-emit-token-metric namespace="tokenwars">
+          <dimension name="Subscription ID" />
+          <dimension name="team" value="@(context.Subscription.Name)" />
+          <dimension name="provider" value="@((string)context.Variables[&quot;tw-provider&quot;])" />
+        </llm-emit-token-metric>
+      </when>
+    </choose>
+  </inbound>
+  <backend>
+    <!-- TODO 3.5c: retry 429/5xx. Azure uses the pool; Fireworks/Ollama retain their selected backend. -->
+    <forward-request buffer-request-body="true" timeout="120" />
+  </backend>
+  <outbound>
+    <base />
+    <set-header name="x-tokenwars-provider" exists-action="override">
+      <value>@((string)context.Variables["tw-provider"])</value>
+    </set-header>
+    <set-header name="x-tokenwars-model" exists-action="override">
+      <value>@((string)context.Variables["tw-model"])</value>
+    </set-header>
+    <!-- Exact final-response usage for chat AND embeddings; no invented zero when usage is absent. -->
+    <set-variable name="tw-total-tokens" value="@{
+        var contentType = context.Response.Headers.GetValueOrDefault(&quot;Content-Type&quot;, &quot;&quot;);
+        if (!contentType.Contains(&quot;json&quot;)) { return -1d; }
+        var body = context.Response.Body?.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+        return (double)((double?)body?[&quot;usage&quot;]?[&quot;total_tokens&quot;] ?? -1d);
+    }" />
+    <choose>
+      <when condition="@((double)context.Variables[&quot;tw-total-tokens&quot;] &gt;= 0)">
+        <emit-metric name="Provider Tokens" namespace="tokenwars" value="@((double)context.Variables[&quot;tw-total-tokens&quot;])">
+          <dimension name="Subscription ID" />
+          <dimension name="team" value="@(context.Subscription.Name)" />
+          <dimension name="provider" value="@((string)context.Variables[&quot;tw-provider&quot;])" />
+          <dimension name="Model" value="@((string)context.Variables[&quot;tw-model&quot;])" />
+        </emit-metric>
+      </when>
+    </choose>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

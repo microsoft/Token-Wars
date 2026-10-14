@@ -1,0 +1,1646 @@
+[
+  {
+    "order_id": "BC-10001",
+    "customer_id": "C1004",
+    "placed_at": "2026-05-21",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "TO-5003",
+        "name": "Plush Dragon",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 16.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "TO-5001",
+        "name": "Galaxy Building Blocks Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 59.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 76.98,
+    "payment_method": "paypal",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC3833972024",
+    "estimated_delivery": "2026-05-24",
+    "delivered_at": "2026-05-23",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10002",
+    "customer_id": "C1013",
+    "placed_at": "2026-05-21",
+    "status": "returned",
+    "items": [
+      {
+        "sku": "FA-2003",
+        "name": "Waterproof Rain Jacket",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 119.0,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "EL-1006",
+        "name": "Zenbook Air 14 Laptop",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 899.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 1018.0,
+    "payment_method": "paypal",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC0146891310",
+    "estimated_delivery": "2026-05-24",
+    "delivered_at": "2026-05-23",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10003",
+    "customer_id": "C1020",
+    "placed_at": "2026-05-21",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1006",
+        "name": "Zenbook Air 14 Laptop",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 899.0,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4002",
+        "name": "Cooking for Busy People",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 24.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 923.95,
+    "payment_method": "paypal",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039002196431877",
+    "estimated_delivery": "2026-05-24",
+    "delivered_at": "2026-05-24",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10004",
+    "customer_id": "C1016",
+    "placed_at": "2026-05-22",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "HO-3001",
+        "name": "Barista One Espresso Machine",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 249.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 249.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039008119963845",
+    "estimated_delivery": "2026-05-25",
+    "delivered_at": "2026-05-24",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10005",
+    "customer_id": "C1002",
+    "placed_at": "2026-06-02",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1007",
+        "name": "Echo Mini Bluetooth Speaker",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 24.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 29.98,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039009482814548",
+    "estimated_delivery": "2026-06-06",
+    "delivered_at": "2026-06-05",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10006",
+    "customer_id": "C1012",
+    "placed_at": "2026-06-06",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2001",
+        "name": "Merino Crew Sweater",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 69.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 69.95,
+    "payment_method": "paypal",
+    "carrier": "DPD",
+    "tracking_id": "01500707397123",
+    "estimated_delivery": "2026-06-10",
+    "delivered_at": "2026-06-09",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10007",
+    "customer_id": "C1005",
+    "placed_at": "2026-06-08",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2001",
+        "name": "Merino Crew Sweater",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 69.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 69.95,
+    "payment_method": "paypal",
+    "carrier": "GLS",
+    "tracking_id": "ZG7372761785",
+    "estimated_delivery": "2026-06-11",
+    "delivered_at": "2026-06-11",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10008",
+    "customer_id": "C1010",
+    "placed_at": "2026-06-08",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1006",
+        "name": "Zenbook Air 14 Laptop",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 899.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 899.0,
+    "payment_method": "klarna",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039006837293042",
+    "estimated_delivery": "2026-06-11",
+    "delivered_at": "2026-06-11",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10009",
+    "customer_id": "C1009",
+    "placed_at": "2026-06-09",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1008",
+        "name": "TerraBoost Power Bank 20000mAh",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 39.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BE-6002",
+        "name": "IonPro Hair Dryer",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 79.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 119.98,
+    "payment_method": "klarna",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039000049669275",
+    "estimated_delivery": "2026-06-12",
+    "delivered_at": "2026-06-12",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10010",
+    "customer_id": "C1008",
+    "placed_at": "2026-06-11",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2005",
+        "name": "Leather Belt",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 34.5,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BE-6004",
+        "name": "Lipstick Duo",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 18.9,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 53.4,
+    "payment_method": "card",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC9089287429",
+    "estimated_delivery": "2026-06-15",
+    "delivered_at": "2026-06-14",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10011",
+    "customer_id": "C1018",
+    "placed_at": "2026-06-14",
+    "status": "cancelled",
+    "items": [
+      {
+        "sku": "FA-2001",
+        "name": "Merino Crew Sweater",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 69.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 69.95,
+    "payment_method": "card",
+    "carrier": null,
+    "tracking_id": null,
+    "estimated_delivery": null,
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10012",
+    "customer_id": "C1004",
+    "placed_at": "2026-06-15",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BE-6003",
+        "name": "Eau de Parfum Amber 50ml",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 64.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 64.0,
+    "payment_method": "klarna",
+    "carrier": "GLS",
+    "tracking_id": "ZG6868651642",
+    "estimated_delivery": "2026-06-18",
+    "delivered_at": "2026-06-17",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10013",
+    "customer_id": "C1006",
+    "placed_at": "2026-06-15",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1005",
+        "name": "StreamCam HD Webcam",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 59.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BE-6002",
+        "name": "IonPro Hair Dryer",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 79.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BE-6004",
+        "name": "Lipstick Duo",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 18.9,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 158.79,
+    "payment_method": "paypal",
+    "carrier": "DPD",
+    "tracking_id": "01500064643773",
+    "estimated_delivery": "2026-06-18",
+    "delivered_at": "2026-06-18",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10014",
+    "customer_id": "C1001",
+    "placed_at": "2026-07-06",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1001",
+        "name": "Aurora ANC Wireless Headphones",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 129.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 129.99,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039002368821615",
+    "estimated_delivery": "2026-07-09",
+    "delivered_at": "2026-07-10",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10015",
+    "customer_id": "C1014",
+    "placed_at": "2026-07-06",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "TO-5002",
+        "name": "Wooden Train Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 34.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3003",
+        "name": "Linen Duvet Cover Set",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 79.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 113.99,
+    "payment_method": "card",
+    "carrier": "GLS",
+    "tracking_id": "ZG5374930414",
+    "estimated_delivery": "2026-07-10",
+    "delivered_at": "2026-07-10",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10016",
+    "customer_id": "C1003",
+    "placed_at": "2026-07-16",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1003",
+        "name": "VoltCharge 65W USB-C Charger",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 29.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 29.99,
+    "payment_method": "paypal",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039000830799576",
+    "estimated_delivery": "2026-07-19",
+    "delivered_at": "2026-07-19",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10017",
+    "customer_id": "C1017",
+    "placed_at": "2026-07-17",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2003",
+        "name": "Waterproof Rain Jacket",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 119.0,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "FA-2006",
+        "name": "Bikini Set",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 39.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 158.99,
+    "payment_method": "gift_card",
+    "carrier": "DPD",
+    "tracking_id": "01508106630185",
+    "estimated_delivery": "2026-07-21",
+    "delivered_at": "2026-07-21",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10018",
+    "customer_id": "C1006",
+    "placed_at": "2026-07-22",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BO-4002",
+        "name": "Cooking for Busy People",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 24.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 24.95,
+    "payment_method": "card",
+    "carrier": "GLS",
+    "tracking_id": "ZG1151918067",
+    "estimated_delivery": "2026-07-26",
+    "delivered_at": "2026-07-26",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10019",
+    "customer_id": "C1013",
+    "placed_at": "2026-07-22",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "HO-3002",
+        "name": "Cast Iron Pan 28cm",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 44.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "EL-1001",
+        "name": "Aurora ANC Wireless Headphones",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 129.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 174.89,
+    "payment_method": "paypal",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039008746306400",
+    "estimated_delivery": "2026-07-27",
+    "delivered_at": "2026-07-26",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10020",
+    "customer_id": "C1016",
+    "placed_at": "2026-07-26",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1008",
+        "name": "TerraBoost Power Bank 20000mAh",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 39.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "TO-5002",
+        "name": "Wooden Train Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 34.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 74.98,
+    "payment_method": "gift_card",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC9152049996",
+    "estimated_delivery": "2026-07-31",
+    "delivered_at": "2026-07-31",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10021",
+    "customer_id": "C1018",
+    "placed_at": "2026-07-27",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BO-4004",
+        "name": "Kids' Atlas of the World",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 18.5,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 23.49,
+    "payment_method": "gift_card",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC1357030410",
+    "estimated_delivery": "2026-07-31",
+    "delivered_at": "2026-07-30",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10022",
+    "customer_id": "C1007",
+    "placed_at": "2026-07-29",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2004",
+        "name": "Organic Cotton T-Shirt 3-Pack",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 29.97,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 34.96,
+    "payment_method": "card",
+    "carrier": "DPD",
+    "tracking_id": "01503583977654",
+    "estimated_delivery": "2026-08-03",
+    "delivered_at": "2026-08-02",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10023",
+    "customer_id": "C1019",
+    "placed_at": "2026-07-29",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "MP-EL-202",
+        "name": "Refurbished Phone X12 128GB",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 289.0,
+        "sold_by": "TechNova Store"
+      }
+    ],
+    "total_eur": 293.9,
+    "payment_method": "gift_card",
+    "carrier": "UPS",
+    "tracking_id": "1Z9R4W3076629571",
+    "estimated_delivery": "2026-08-02",
+    "delivered_at": "2026-08-01",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10024",
+    "customer_id": "C1001",
+    "placed_at": "2026-08-02",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2003",
+        "name": "Waterproof Rain Jacket",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 119.0,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "FA-2004",
+        "name": "Organic Cotton T-Shirt 3-Pack",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 29.97,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 148.97,
+    "payment_method": "paypal",
+    "carrier": "DPD",
+    "tracking_id": "01509652852174",
+    "estimated_delivery": "2026-08-05",
+    "delivered_at": "2026-08-05",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10025",
+    "customer_id": "C1012",
+    "placed_at": "2026-08-03",
+    "status": "returned",
+    "items": [
+      {
+        "sku": "FA-2004",
+        "name": "Organic Cotton T-Shirt 3-Pack",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 29.97,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4003",
+        "name": "Mystery at Fjord Bay (Paperback)",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 12.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 42.96,
+    "payment_method": "paypal",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039002286950689",
+    "estimated_delivery": "2026-08-06",
+    "delivered_at": "2026-08-06",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10026",
+    "customer_id": "C1007",
+    "placed_at": "2026-08-07",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2001",
+        "name": "Merino Crew Sweater",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 69.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 69.95,
+    "payment_method": "card",
+    "carrier": "DPD",
+    "tracking_id": "01503685127383",
+    "estimated_delivery": "2026-08-11",
+    "delivered_at": "2026-08-11",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10027",
+    "customer_id": "C1002",
+    "placed_at": "2026-08-10",
+    "status": "returned",
+    "items": [
+      {
+        "sku": "FA-2002",
+        "name": "Trail Runner Sneakers",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 89.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 89.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039003744255335",
+    "estimated_delivery": "2026-08-13",
+    "delivered_at": "2026-08-13",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10028",
+    "customer_id": "C1015",
+    "placed_at": "2026-08-12",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BE-6004",
+        "name": "Lipstick Duo",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 18.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BE-6001",
+        "name": "Vitamin C Face Serum",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 27.5,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "FA-2005",
+        "name": "Leather Belt",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 34.5,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 80.9,
+    "payment_method": "paypal",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039004406279642",
+    "estimated_delivery": "2026-08-15",
+    "delivered_at": "2026-08-14",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10029",
+    "customer_id": "C1005",
+    "placed_at": "2026-08-18",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "HO-3002",
+        "name": "Cast Iron Pan 28cm",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 44.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3005",
+        "name": "Scented Candle Trio",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 19.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 64.89,
+    "payment_method": "klarna",
+    "carrier": "GLS",
+    "tracking_id": "ZG5820685993",
+    "estimated_delivery": "2026-08-21",
+    "delivered_at": "2026-08-21",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10030",
+    "customer_id": "C1009",
+    "placed_at": "2026-08-19",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BE-6002",
+        "name": "IonPro Hair Dryer",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 79.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "FA-2005",
+        "name": "Leather Belt",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 34.5,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 114.49,
+    "payment_method": "card",
+    "carrier": "DPD",
+    "tracking_id": "01505378307853",
+    "estimated_delivery": "2026-08-24",
+    "delivered_at": "2026-09-01",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10031",
+    "customer_id": "C1010",
+    "placed_at": "2026-08-22",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BO-4003",
+        "name": "Mystery at Fjord Bay (Paperback)",
+        "category": "books",
+        "qty": 2,
+        "price_eur": 12.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4002",
+        "name": "Cooking for Busy People",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 24.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 50.93,
+    "payment_method": "paypal",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC3195826487",
+    "estimated_delivery": "2026-08-26",
+    "delivered_at": "2026-08-26",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10032",
+    "customer_id": "C1018",
+    "placed_at": "2026-08-24",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "TO-5002",
+        "name": "Wooden Train Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 34.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 39.98,
+    "payment_method": "paypal",
+    "carrier": "DPD",
+    "tracking_id": "01509444138785",
+    "estimated_delivery": "2026-08-27",
+    "delivered_at": "2026-08-28",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10033",
+    "customer_id": "C1011",
+    "placed_at": "2026-08-25",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1008",
+        "name": "TerraBoost Power Bank 20000mAh",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 39.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4001",
+        "name": "The Pragmatic Cloud (Hardcover)",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 39.9,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 79.89,
+    "payment_method": "card",
+    "carrier": "GLS",
+    "tracking_id": "ZG0617980781",
+    "estimated_delivery": "2026-08-28",
+    "delivered_at": "2026-08-28",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10034",
+    "customer_id": "C1014",
+    "placed_at": "2026-08-27",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "MP-HO-401",
+        "name": "Nordic Wool Rug 160x230",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 189.0,
+        "sold_by": "Nordic Home Goods"
+      }
+    ],
+    "total_eur": 193.9,
+    "payment_method": "card",
+    "carrier": "DPD",
+    "tracking_id": "01509742210219",
+    "estimated_delivery": "2026-09-03",
+    "delivered_at": "2026-09-03",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10035",
+    "customer_id": "C1019",
+    "placed_at": "2026-08-29",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "HO-3004",
+        "name": "Solid Oak Desk",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 329.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 358.0,
+    "payment_method": "klarna",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039003360683560",
+    "estimated_delivery": "2026-09-07",
+    "delivered_at": "2026-09-07",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10036",
+    "customer_id": "C1015",
+    "placed_at": "2026-08-31",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "HO-3005",
+        "name": "Scented Candle Trio",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 19.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 24.98,
+    "payment_method": "card",
+    "carrier": "GLS",
+    "tracking_id": "ZG4366720860",
+    "estimated_delivery": "2026-09-03",
+    "delivered_at": "2026-09-03",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10037",
+    "customer_id": "C1005",
+    "placed_at": "2026-09-01",
+    "status": "delayed",
+    "items": [
+      {
+        "sku": "MP-TO-501",
+        "name": "RC Stunt Car",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 49.0,
+        "sold_by": "PlayBox Toys"
+      }
+    ],
+    "total_eur": 53.9,
+    "payment_method": "card",
+    "carrier": "Hermes",
+    "tracking_id": "H10041571643919",
+    "estimated_delivery": "2026-09-07",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10038",
+    "customer_id": "C1006",
+    "placed_at": "2026-09-01",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1002",
+        "name": "Pixel-Pro 27\" 4K Monitor",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 349.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 349.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039001381243402",
+    "estimated_delivery": "2026-09-04",
+    "delivered_at": "2026-09-04",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10039",
+    "customer_id": "C1010",
+    "placed_at": "2026-09-01",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "FA-2002",
+        "name": "Trail Runner Sneakers",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 89.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 89.0,
+    "payment_method": "card",
+    "carrier": "DPD",
+    "tracking_id": "01501924944057",
+    "estimated_delivery": "2026-09-04",
+    "delivered_at": "2026-09-05",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10040",
+    "customer_id": "C1011",
+    "placed_at": "2026-09-02",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "MP-EL-201",
+        "name": "Mechanical Gaming Keyboard RGB TKL",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 79.0,
+        "sold_by": "TechNova Store"
+      }
+    ],
+    "total_eur": 83.9,
+    "payment_method": "paypal",
+    "carrier": "UPS",
+    "tracking_id": "1Z9R4W9760640606",
+    "estimated_delivery": "2026-09-08",
+    "delivered_at": "2026-09-08",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10041",
+    "customer_id": "C1004",
+    "placed_at": "2026-09-03",
+    "status": "delayed",
+    "items": [
+      {
+        "sku": "EL-1004",
+        "name": "Nimbus Smartwatch S2",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 199.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 199.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039004174686314",
+    "estimated_delivery": "2026-09-08",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10042",
+    "customer_id": "C1013",
+    "placed_at": "2026-09-04",
+    "status": "delayed",
+    "items": [
+      {
+        "sku": "HO-3002",
+        "name": "Cast Iron Pan 28cm",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 44.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4002",
+        "name": "Cooking for Busy People",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 24.95,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 69.85,
+    "payment_method": "klarna",
+    "carrier": "GLS",
+    "tracking_id": "ZG5319072793",
+    "estimated_delivery": "2026-09-10",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10043",
+    "customer_id": "C1020",
+    "placed_at": "2026-09-05",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1002",
+        "name": "Pixel-Pro 27\" 4K Monitor",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 349.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 349.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039001112584817",
+    "estimated_delivery": "2026-09-08",
+    "delivered_at": "2026-09-08",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10044",
+    "customer_id": "C1003",
+    "placed_at": "2026-09-07",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "HO-3001",
+        "name": "Barista One Espresso Machine",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 249.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 249.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039000734298877",
+    "estimated_delivery": "2026-09-10",
+    "delivered_at": "2026-09-10",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10045",
+    "customer_id": "C1020",
+    "placed_at": "2026-09-07",
+    "status": "delayed",
+    "items": [
+      {
+        "sku": "FA-2003",
+        "name": "Waterproof Rain Jacket",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 119.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 119.0,
+    "payment_method": "card",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC6853092973",
+    "estimated_delivery": "2026-09-11",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10046",
+    "customer_id": "C1008",
+    "placed_at": "2026-09-09",
+    "status": "cancelled",
+    "items": [
+      {
+        "sku": "TO-5001",
+        "name": "Galaxy Building Blocks Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 59.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 59.99,
+    "payment_method": "card",
+    "carrier": null,
+    "tracking_id": null,
+    "estimated_delivery": null,
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10047",
+    "customer_id": "C1017",
+    "placed_at": "2026-09-09",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1007",
+        "name": "Echo Mini Bluetooth Speaker",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 24.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3006",
+        "name": "Ceramic Mug Set (4)",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 24.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 48.99,
+    "payment_method": "card",
+    "carrier": "DPD",
+    "tracking_id": "01505375412459",
+    "estimated_delivery": "2026-09-14",
+    "delivered_at": "2026-09-14",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10048",
+    "customer_id": "C1003",
+    "placed_at": "2026-09-10",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "BE-6001",
+        "name": "Vitamin C Face Serum",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 27.5,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3006",
+        "name": "Ceramic Mug Set (4)",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 24.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 51.5,
+    "payment_method": "paypal",
+    "carrier": "DPD",
+    "tracking_id": "01500149431250",
+    "estimated_delivery": "2026-09-12",
+    "delivered_at": "2026-09-12",
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10049",
+    "customer_id": "C1009",
+    "placed_at": "2026-09-10",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "TO-5002",
+        "name": "Wooden Train Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 34.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4004",
+        "name": "Kids' Atlas of the World",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 18.5,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 53.49,
+    "payment_method": "paypal",
+    "carrier": "DPD",
+    "tracking_id": "01506499212336",
+    "estimated_delivery": "2026-09-16",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10050",
+    "customer_id": "C1015",
+    "placed_at": "2026-09-10",
+    "status": "delivered",
+    "items": [
+      {
+        "sku": "EL-1008",
+        "name": "TerraBoost Power Bank 20000mAh",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 39.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4004",
+        "name": "Kids' Atlas of the World",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 18.5,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 58.49,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039002857300582",
+    "estimated_delivery": "2026-09-14",
+    "delivered_at": "2026-09-14",
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10051",
+    "customer_id": "C1016",
+    "placed_at": "2026-09-10",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "FA-2001",
+        "name": "Merino Crew Sweater",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 69.95,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "FA-2005",
+        "name": "Leather Belt",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 34.5,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 104.45,
+    "payment_method": "card",
+    "carrier": "GLS",
+    "tracking_id": "ZG4681203519",
+    "estimated_delivery": "2026-09-15",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10052",
+    "customer_id": "C1002",
+    "placed_at": "2026-09-11",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "EL-1005",
+        "name": "StreamCam HD Webcam",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 59.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "EL-1003",
+        "name": "VoltCharge 65W USB-C Charger",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 29.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 89.89,
+    "payment_method": "paypal",
+    "carrier": "PostNL",
+    "tracking_id": "3SBYC4259574456",
+    "estimated_delivery": "2026-09-16",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10053",
+    "customer_id": "C1017",
+    "placed_at": "2026-09-11",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "HO-3003",
+        "name": "Linen Duvet Cover Set",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 79.0,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3002",
+        "name": "Cast Iron Pan 28cm",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 44.9,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 123.9,
+    "payment_method": "klarna",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039002083271994",
+    "estimated_delivery": "2026-09-16",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10054",
+    "customer_id": "C1019",
+    "placed_at": "2026-09-11",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "EL-1003",
+        "name": "VoltCharge 65W USB-C Charger",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 29.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BO-4003",
+        "name": "Mystery at Fjord Bay (Paperback)",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 12.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 42.98,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039009451937572",
+    "estimated_delivery": "2026-09-16",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10055",
+    "customer_id": "C1007",
+    "placed_at": "2026-09-12",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "HO-3003",
+        "name": "Linen Duvet Cover Set",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 79.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 79.0,
+    "payment_method": "card",
+    "carrier": "DHL",
+    "tracking_id": "JJD00039009737619032",
+    "estimated_delivery": "2026-09-16",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10056",
+    "customer_id": "C1008",
+    "placed_at": "2026-09-12",
+    "status": "shipped",
+    "items": [
+      {
+        "sku": "BO-4002",
+        "name": "Cooking for Busy People",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 24.95,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3006",
+        "name": "Ceramic Mug Set (4)",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 24.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 48.95,
+    "payment_method": "paypal",
+    "carrier": "GLS",
+    "tracking_id": "ZG6112539525",
+    "estimated_delivery": "2026-09-17",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10057",
+    "customer_id": "C1001",
+    "placed_at": "2026-09-14",
+    "status": "processing",
+    "items": [
+      {
+        "sku": "BO-4001",
+        "name": "The Pragmatic Cloud (Hardcover)",
+        "category": "books",
+        "qty": 1,
+        "price_eur": 39.9,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "TO-5003",
+        "name": "Plush Dragon",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 16.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 56.89,
+    "payment_method": "card",
+    "carrier": null,
+    "tracking_id": null,
+    "estimated_delivery": "2026-09-17",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10058",
+    "customer_id": "C1011",
+    "placed_at": "2026-09-14",
+    "status": "processing",
+    "items": [
+      {
+        "sku": "FA-2006",
+        "name": "Bikini Set",
+        "category": "fashion",
+        "qty": 1,
+        "price_eur": 39.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "BE-6003",
+        "name": "Eau de Parfum Amber 50ml",
+        "category": "beauty",
+        "qty": 1,
+        "price_eur": 64.0,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 103.99,
+    "payment_method": "card",
+    "carrier": null,
+    "tracking_id": null,
+    "estimated_delivery": "2026-09-17",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  },
+  {
+    "order_id": "BC-10059",
+    "customer_id": "C1012",
+    "placed_at": "2026-09-14",
+    "status": "processing",
+    "items": [
+      {
+        "sku": "EL-1007",
+        "name": "Echo Mini Bluetooth Speaker",
+        "category": "electronics",
+        "qty": 1,
+        "price_eur": 24.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "HO-3005",
+        "name": "Scented Candle Trio",
+        "category": "home",
+        "qty": 1,
+        "price_eur": 19.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 44.98,
+    "payment_method": "gift_card",
+    "carrier": null,
+    "tracking_id": null,
+    "estimated_delivery": "2026-09-18",
+    "delivered_at": null,
+    "customer_tier": "standard"
+  },
+  {
+    "order_id": "BC-10060",
+    "customer_id": "C1014",
+    "placed_at": "2026-09-14",
+    "status": "processing",
+    "items": [
+      {
+        "sku": "TO-5001",
+        "name": "Galaxy Building Blocks Set",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 59.99,
+        "sold_by": "ByteCart"
+      },
+      {
+        "sku": "TO-5003",
+        "name": "Plush Dragon",
+        "category": "toys",
+        "qty": 1,
+        "price_eur": 16.99,
+        "sold_by": "ByteCart"
+      }
+    ],
+    "total_eur": 76.98,
+    "payment_method": "paypal",
+    "carrier": null,
+    "tracking_id": null,
+    "estimated_delivery": "2026-09-17",
+    "delivered_at": null,
+    "customer_tier": "plus"
+  }
+]
