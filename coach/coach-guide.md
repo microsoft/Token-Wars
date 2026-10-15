@@ -308,8 +308,9 @@ az containerapp update --name tokenwars-leaderboard --resource-group <rg> --min-
 - Validity: full run (100 items) and pass rate ≥ 85 %; mock runs are rejected. Partial or failing runs appear greyed
   out below the ranking with the reason.
 - Data is in the container (`/app/data/submissions.json`); keep 1 replica. Export with `GET /api/submissions`.
+- Configure a separate coach-only `LEADERBOARD_ADMIN_KEY` using a Container Apps secret (see [leaderboard setup](../leaderboard/README.md#deploy-to-azure-container-apps-one-command)); never share it with teams. **Download submissions** exports all runs including strategies after asking for this key.
 - Local fallback (laptop on the venue Wi-Fi): `python3 leaderboard/server.py` (port 8080).
-- Reset: delete `data/submissions.json` and restart (or redeploy).
+- Reset: use **Reset leaderboard**, confirm permanent deletion of every team's submissions, and enter the admin key. Download a backup first. No restart is needed; both controls are disabled without `LEADERBOARD_ADMIN_KEY`.
 
 ---
 

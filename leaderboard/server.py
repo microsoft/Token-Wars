@@ -5,6 +5,8 @@ Endpoints
   POST /api/submissions   submit a run summary (header x-submit-key if LEADERBOARD_SUBMIT_KEY is set)
   GET  /api/leaderboard   ranking: best VALID submission per team, lowest cost_per_success_usd first
   GET  /api/submissions   raw list of stored submissions (debugging)
+  GET  /api/submissions/export  download all submissions, including strategies (x-admin-key)
+  POST /api/leaderboard/reset   permanently clear all submissions (x-admin-key)
   GET  /healthz           liveness probe
   GET  /                  auto-refreshing leaderboard page
 
@@ -12,9 +14,11 @@ Environment
   PORT                    listen port (default 8080)
   DATA_DIR                folder for submissions.json (default ./data)
   LEADERBOARD_SUBMIT_KEY  optional shared secret required in the x-submit-key header
+  LEADERBOARD_ADMIN_KEY   separate coach-only secret for export and reset (disabled if unset)
   MIN_PASS_RATE           validity gate (default 0.85)
   MIN_ITEMS               minimum number of workload items for a valid run (default 100)
 """
+import hmac
 import json
 import os
 import threading
@@ -25,6 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 PORT = int(os.environ.get("PORT", "8080"))
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.getcwd(), "data"))
 SUBMIT_KEY = os.environ.get("LEADERBOARD_SUBMIT_KEY", "")
+ADMIN_KEY = os.environ.get("LEADERBOARD_ADMIN_KEY", "")
 MIN_PASS_RATE = float(os.environ.get("MIN_PASS_RATE", "0.85"))
 MIN_ITEMS = int(os.environ.get("MIN_ITEMS", "100"))
 MAX_BODY = 1_000_000
@@ -172,27 +177,40 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):  # concise access log
         print(f"[{self.log_date_time_string()}] {self.address_string()} {fmt % args}", flush=True)
 
-    def _send(self, code, payload, content_type="application/json; charset=utf-8"):
+    def _send(self, code, payload, content_type="application/json; charset=utf-8", headers=None):
         body = payload if isinstance(payload, bytes) else json.dumps(payload, indent=1).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Access-Control-Allow-Origin", "*")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
+
+    def _authorize_admin(self):
+        if not ADMIN_KEY:
+            self._send(503, {"error": "Administration is disabled. Configure LEADERBOARD_ADMIN_KEY on the server."})
+            return False
+        key = self.headers.get("x-admin-key", "")
+        if not hmac.compare_digest(key.encode("utf-8"), ADMIN_KEY.encode("utf-8")):
+            self._send(401, {"error": "Invalid or missing admin key."})
+            return False
+        return True
 
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, x-submit-key")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, x-submit-key, x-admin-key")
         self.end_headers()
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
-            return self._send(200, PAGE.encode("utf-8"), "text/html; charset=utf-8")
+            page = PAGE.replace("__ADMIN_ENABLED__", json.dumps(bool(ADMIN_KEY)))
+            return self._send(200, page.encode("utf-8"), "text/html; charset=utf-8")
         if path == "/healthz":
             return self._send(200, {"status": "ok"})
         if path == "/api/leaderboard":
@@ -203,10 +221,32 @@ class Handler(BaseHTTPRequestHandler):
             with _lock:
                 subs = _load()
             return self._send(200, [{k: v for k, v in s.items() if k != "strategy"} for s in subs])
+        if path == "/api/submissions/export":
+            if not self._authorize_admin():
+                return
+            try:
+                with _lock:
+                    subs = _load()
+            except (OSError, ValueError) as exc:
+                self.log_error("Could not export submissions: %s", exc)
+                return self._send(500, {"error": "Could not read submissions. Check the server logs."})
+            filename = datetime.now(timezone.utc).strftime("tokenwars-submissions-%Y%m%d-%H%M%S.json")
+            return self._send(200, subs, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
         return self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path.split("?", 1)[0] != "/api/submissions":
+        path = self.path.split("?", 1)[0]
+        if path == "/api/leaderboard/reset":
+            if not self._authorize_admin():
+                return
+            try:
+                with _lock:
+                    _save([])
+            except OSError as exc:
+                self.log_error("Could not reset leaderboard: %s", exc)
+                return self._send(500, {"error": "Could not reset leaderboard. Check the server logs."})
+            return self._send(200, {"reset": True})
+        if path != "/api/submissions":
             return self._send(404, {"error": "not found"})
         if SUBMIT_KEY and self.headers.get("x-submit-key", "") != SUBMIT_KEY:
             return self._send(401, {"accepted": False, "error": "invalid or missing x-submit-key"})
@@ -253,6 +293,16 @@ h1{margin:0;font-size:clamp(40px,7vw,86px);letter-spacing:.12em;font-weight:900;
 .stat{background:var(--panel);border:1px solid #ffffff1a;border-radius:14px;padding:12px 20px;min-width:170px;text-align:center;box-shadow:0 0 18px #00f0ff22 inset}
 .stat b{display:block;font-size:26px;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}.stat span{font-size:11px;color:var(--dim);letter-spacing:.18em;text-transform:uppercase}
 main{max-width:1280px;margin:12px auto 40px;padding:0 16px}
+.actions{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin:18px 0 8px}
+button{font:inherit;font-weight:600;color:var(--cyan);background:var(--panel);border:1px solid var(--cyan);border-radius:8px;padding:10px 16px;cursor:pointer}
+button.danger{color:var(--red);border-color:var(--red)}button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.action-status{min-height:1.5em;text-align:right;font-size:13px}
+dialog{color:var(--txt);background:#0f0d22;border:1px solid var(--cyan);border-radius:14px;padding:24px;max-width:440px;width:calc(100% - 32px)}
+dialog::backdrop{background:#000a}dialog h2{color:var(--cyan);margin:0 0 16px}
+dialog p{line-height:1.5}dialog label{display:block;margin-bottom:8px}
+dialog input{width:100%;font:inherit;color:var(--txt);background:var(--bg);border:1px solid var(--dim);border-radius:6px;padding:10px}
+dialog .actions{margin-bottom:0}
 table{width:100%;border-collapse:separate;border-spacing:0 8px}
 th{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);text-align:right;padding:6px 12px;font-weight:600}
 th:nth-child(-n+3){text-align:left}
@@ -282,11 +332,29 @@ footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 30px}
  <div class="stat"><b id="s-impr">–</b><span>best improvement</span></div>
 </section>
 <main>
+ <div class="actions" aria-label="Leaderboard administration">
+  <button id="download" type="button">Download submissions</button>
+  <button id="reset" type="button" class="danger">Reset leaderboard</button>
+ </div>
+ <div id="action-status" class="action-status dim" role="status" aria-live="polite"></div>
  <table><thead><tr><th>#</th><th>Team</th><th>Lang</th><th>Cost / success</th><th>Pass rate</th><th>Total cost</th><th>p95 latency</th><th>Cache hits</th><th>Runs</th><th>vs first run</th></tr></thead>
  <tbody id="ranked"><tr><td colspan="10" class="empty">Waiting for the first valid submission…</td></tr></tbody></table>
  <div id="inv-wrap" style="display:none"><h2>Below the quality bar (not ranked)</h2>
  <table><tbody id="invalid"></tbody></table></div>
 </main>
+<dialog id="admin-dialog" aria-labelledby="admin-title" aria-describedby="admin-description">
+ <form id="admin-form">
+  <h2 id="admin-title">Download submissions</h2>
+  <p id="admin-description"></p>
+  <label for="admin-key">Admin key</label>
+  <input id="admin-key" type="password" required autocomplete="off" autofocus>
+  <p id="admin-error" class="bad" role="alert"></p>
+  <div class="actions">
+   <button id="admin-cancel" type="button">Cancel</button>
+   <button id="admin-confirm" type="submit">Download</button>
+  </div>
+ </form>
+</dialog>
 <footer><span class="pulse"></span>live · refreshes every 10 s · <span id="updated">–</span> · valid = pass rate ≥ <span id="gate">85%</span> on the full workload</footer>
 <script>
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -305,9 +373,14 @@ function row(r,invalid){
   <td>${r.cache_hits} <span class="dim" style="font-size:11px">(${r.cache_hits_exact}e/${r.cache_hits_semantic}s)</span></td>
   <td>${r.submissions}</td><td>${impr}</td></tr>`;
 }
+let refreshVersion=0;
 async function refresh(){
+  const version=++refreshVersion;
   try{
-    const d=await (await fetch('/api/leaderboard',{cache:'no-store'})).json();
+    const response=await fetch('/api/leaderboard',{cache:'no-store'});
+    if(!response.ok)throw new Error('Could not refresh leaderboard.');
+    const d=await response.json();
+    if(version!==refreshVersion)return false;
     document.getElementById('s-teams').textContent=d.teams;
     document.getElementById('s-subs').textContent=d.total_submissions;
     document.getElementById('s-best').textContent=d.ranked.length?usd(d.ranked[0].cost_per_success_usd,5):'–';
@@ -318,8 +391,89 @@ async function refresh(){
     document.getElementById('inv-wrap').style.display=d.invalid.length?'block':'none';
     document.getElementById('invalid').innerHTML=d.invalid.map(r=>row(r,true)).join('');
     document.getElementById('updated').textContent='updated '+new Date().toLocaleTimeString();
-  }catch(e){document.getElementById('updated').textContent='offline – retrying';}
+    return true;
+  }catch(e){
+    if(version===refreshVersion)document.getElementById('updated').textContent='offline – retrying';
+    return false;
+  }
 }
+const adminEnabled=__ADMIN_ENABLED__;
+const downloadButton=document.getElementById('download');
+const resetButton=document.getElementById('reset');
+const adminDialog=document.getElementById('admin-dialog');
+const adminKey=document.getElementById('admin-key');
+const adminConfirm=document.getElementById('admin-confirm');
+const adminCancel=document.getElementById('admin-cancel');
+const adminError=document.getElementById('admin-error');
+const actionStatus=document.getElementById('action-status');
+let adminAction=null;
+let adminBusy=false;
+function showAdmin(action){
+  adminAction=action;
+  const resetting=action==='reset';
+  document.getElementById('admin-title').textContent=resetting?'Reset leaderboard':'Download submissions';
+  document.getElementById('admin-description').textContent=resetting?
+    'Permanently delete ALL submissions and rankings for every team? This cannot be undone. Download a backup first.':
+    'Download all submissions as JSON, including strategies and valid and invalid runs.';
+  adminConfirm.textContent=resetting?'Confirm reset':'Download';
+  adminConfirm.classList.toggle('danger',resetting);
+  adminError.textContent='';
+  adminKey.value='';
+  adminDialog.showModal();
+}
+downloadButton.disabled=resetButton.disabled=!adminEnabled;
+if(!adminEnabled)actionStatus.textContent='Administration disabled: configure LEADERBOARD_ADMIN_KEY on the server.';
+downloadButton.addEventListener('click',()=>showAdmin('download'));
+resetButton.addEventListener('click',()=>showAdmin('reset'));
+adminCancel.addEventListener('click',()=>adminDialog.close());
+adminDialog.addEventListener('cancel',event=>{if(adminBusy)event.preventDefault();});
+adminDialog.addEventListener('close',()=>{adminKey.value='';});
+document.getElementById('admin-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(adminBusy)return;
+  adminBusy=true;
+  adminConfirm.disabled=adminCancel.disabled=adminKey.disabled=true;
+  downloadButton.disabled=resetButton.disabled=true;
+  adminError.textContent='';
+  actionStatus.textContent='';
+  const key=adminKey.value;
+  adminKey.value='';
+  try{
+    const resetting=adminAction==='reset';
+    const response=await fetch(resetting?'/api/leaderboard/reset':'/api/submissions/export',{
+      method:resetting?'POST':'GET',headers:{'x-admin-key':key},cache:'no-store'
+    });
+    if(!response.ok){
+      const error=await response.json();
+      throw new Error(error.error||`Request failed (${response.status}).`);
+    }
+    if(resetting){
+      const refreshed=await refresh();
+      actionStatus.textContent=refreshed?'Leaderboard reset.':
+        'Leaderboard reset, but the page could not refresh. Reload the page.';
+    }else{
+      const blob=await response.blob();
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement('a');
+      const filename=/filename="([^"]+)"/.exec(response.headers.get('Content-Disposition')||'');
+      link.href=url;
+      link.download=filename?filename[1]:'tokenwars-submissions.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      actionStatus.textContent='Submissions download started.';
+    }
+    adminDialog.close();
+  }catch(error){
+    adminError.textContent=error.message;
+  }finally{
+    adminBusy=false;
+    adminConfirm.disabled=adminCancel.disabled=adminKey.disabled=false;
+    downloadButton.disabled=resetButton.disabled=!adminEnabled;
+    if(adminDialog.open)adminKey.focus();
+  }
+});
 refresh();setInterval(refresh,10000);
 </script></body></html>
 """
