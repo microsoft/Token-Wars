@@ -105,6 +105,21 @@ files to `true`; use `--mock` if the gateway is not ready. Only the configured i
 | Container restarts / OOM | Model + context does not fit memory. | Keep 8Gi with 4 vCPU; smaller model. |
 | Model re-downloads after restart | No persistent volume (by design, to keep it simple). | Acceptable for a workshop; mount Azure Files for `/root/.ollama` if needed. |
 
+## Shared-infrastructure mode (teams without a subscription)
+
+Only for teams whose gateway the coach created with [infra/shared](../infra/shared/README.md).
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `deploy_teams.py`: no `shared_mode_config` output | Coach stack deployed with an older kit version. | `cd infra && terraform apply` once (adds the output only), then re-run. |
+| `deploy_teams.py` refuses: teams "missing from the list" | A name was removed from `teams.txt`; applying would delete that team's RG. | Add it back, or re-run with `--allow-remove` if the deletion is intended. |
+| `doctor`: 401/403 from the backend right after deployment | Role assignments of the new APIM identity on the coach Foundry resources are still propagating. | Wait 5–10 minutes and re-run `doctor`. |
+| `doctor`: judge `403 JudgeOnly` | The judge entry in the team's `models.json` no longer uses deployment `judge`. | Restore the coach-generated `models.json` (`out/<team>/models.json`). |
+| `doctor`: judge `key MISSING (JUDGE_API_KEY)` | The team kept its old `.env`. | Copy `out/<team>/.env` to the repo root. |
+| `fw`, `selfhosted` or `custom` missing in a team's `models.json` | Not enabled/registered in the coach stack when the team files were generated. | Enable it in `infra/` (or run `register_custom_model.py`), then re-run `deploy_teams.py`. |
+| Many 429s across several teams at once | Shared deployment TPM (answers or judge) is exhausted. | Raise coach `capacity`, ask teams to lower `concurrency`; per-team `llm-token-limit` does not protect the shared backend. |
+| `set_policy.py` fails with a template error | The team's file lost a `${...}` placeholder or `%{ ... }` block. | The previous policy stays active for that team; send the error back and re-run with the fixed file. |
+
 ## Apps
 
 | Symptom | Fix |

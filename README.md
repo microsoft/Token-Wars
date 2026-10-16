@@ -31,7 +31,8 @@ Before the event, every team works through [`coach/pre-event-checklist.md`](coac
   kit requires provisioned throughput (PTU); PTU only appears as a "for reference" line in the coach's break-even demo.
 - **Each team brings its own Azure subscription.** Quota, feature registrations and costs stay isolated per team.
   The coach uses a **separate** subscription for the leaderboard and for demos that do not fit into 4 hours
-  ("Own the Weights" fine-tuning).
+  ("Own the Weights" fine-tuning). Exception: teams without a subscription get a per-team gateway on the coach's
+  shared models ([`infra/shared`](infra/shared/README.md)).
 - **Optional extras stay optional.** Fireworks on Foundry (Challenge 2.4) and multi-provider failover (Challenge 3.6)
   are off by default (`deploy_fireworks = false`); the core challenges work without them.
 
@@ -76,6 +77,8 @@ Coach automation should also use `--premium-key` / `--balanced-key` for the brea
 │   │                         monitoring, optional Ollama on Container Apps, optional secondary region
 │   ├── fireworks.tf          optional Fireworks on Foundry deployments (Challenge 2.4, deploy_fireworks = true)
 │   ├── scripts/              check-fireworks-prereqs.sh / .ps1 (feature registration, roles, region, model list)
+│   ├── shared/               coach-only exception for teams without a subscription: one APIM per team in front of
+│   │                         the coach's models (deploy_teams.py, set_policy.py)
 │   └── policies/             APIM policy templates: ai-gateway-starter.xml (TODO 3.5) / ai-gateway-solution.xml /
 │                             ai-gateway-multiprovider.xml (Challenge 3.6 stretch: failover to Fireworks)
 ├── shared/
@@ -112,6 +115,17 @@ Full list with commands and timing: [`coach/pre-event-checklist.md`](coach/pre-e
 - Optional, Challenge 2.4 / 3.6 only: subscription feature `Fireworks.EnableDeploy` registered (up to 30 min) and a
   US region for Fireworks — run `infra/scripts/check-fireworks-prereqs.sh --register` (PowerShell:
   `./scripts/check-fireworks-prereqs.ps1 -Register`) **at least a day before** the event.
+
+> [!WARNING]
+> **If you don't have an Azure subscription**, skip the deployment steps (and the subscription, quota and Fireworks
+> prerequisites above). Your coach runs the shared-infrastructure mode ([`infra/shared`](infra/shared/README.md)):
+> one API Management gateway per team in front of the coach's model deployments. You receive two files from your
+> coach: copy `.env` to the repo root and `models.json` to `shared/config/models.json`, then start at step 3
+> (`doctor`). Everything goes through **your** APIM, including the judge (separate `JUDGE_API_KEY`); you never get a
+> Foundry or Fireworks key. For Challenge 3.5 / 3.6 you edit `infra/policies/ai-gateway-starter.xml` as usual and
+> send the file to your coach, who applies it to your gateway (you cannot run `terraform apply`). Model quota, the
+> judge and the prompt cache are shared with other teams, and Azure portal steps (Foundry portal, App Insights,
+> lowering capacity for 3.6) are shown by the coach.
 
 ## Quick start
 

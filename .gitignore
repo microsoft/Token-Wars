@@ -27,6 +27,12 @@ venv/
 terraform.tfvars
 crash.log
 
+# Shared-infrastructure mode (coach): team list, assignments, received policies and generated team keys
+infra/shared/teams.txt
+infra/shared/*.auto.tfvars.json
+infra/shared/team-policies/
+infra/shared/out/
+
 # Leaderboard data
 leaderboard/data/
 
@@ -34,3 +40,5 @@ leaderboard/data/
 .vscode/
 .idea/
 .DS_Store
+shared/config/pricing.json
+infra/shared/.terraform.lock.hcl

@@ -78,6 +78,9 @@ subject to the operating system's command-line argument-size limit.
 and subscription key (`via_gateway: true`). Deploy the fine-tuned model on the primary Foundry resource so
 the built-in Azure route can serve it. For another resource/provider, configure its APIM backend, routing
 rule and credentials first; changing only `base_url` is not sufficient. Only the independent judge is direct.
+**Shared-infrastructure mode** ([infra/shared](../../infra/shared/README.md)): deploy `custom` on the coach's primary
+Foundry resource and run `register_custom_model.py` **before** `deploy_teams.py` (or re-run `deploy_teams.py`
+afterwards) so `custom` appears in every team's `models.json` and is routed by every team gateway.
 Affinity headers are supported, but inference `extra_headers` must not override gateway credentials.
 `finetune test` also uses APIM and loads its credentials from the generated registry and `.env`.
 Fine-tuning management operations (`/files`, `/fine_tuning/jobs`, ARM deployment) remain direct;

@@ -1,0 +1,38 @@
+<policies>
+  <!--
+    Token Wars - shared-infrastructure mode: judge API (coach-managed, NOT part of Challenge 3).
+    Only the judge deployment is served; the team never gets a Foundry key.
+    Rendered by infra/shared (variables: backend_id, judge_deployment).
+  -->
+  <inbound>
+    <base />
+    <set-variable name="tw-model" value="@{
+        var body = context.Request.Body?.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+        return body?[&quot;model&quot;]?.ToString() ?? &quot;&quot;;
+    }" />
+    <choose>
+      <when condition="@((string)context.Variables[&quot;tw-model&quot;] != ${replace(jsonencode(judge_deployment), "\"", "&quot;")})">
+        <return-response>
+          <set-status code="403" reason="Forbidden" />
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+          </set-header>
+          <set-body>{"error":{"code":"JudgeOnly","message":"This API only serves the judge deployment."}}</set-body>
+        </return-response>
+      </when>
+    </choose>
+    <set-backend-service backend-id="${backend_id}" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+    <set-header name="api-key" exists-action="delete" />
+    <set-query-parameter name="api-key" exists-action="delete" />
+  </inbound>
+  <backend>
+    <forward-request buffer-request-body="true" timeout="120" />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

@@ -1,0 +1,5 @@
+# Token Wars - shared-infrastructure mode: one team per line.
+# Copy to teams.txt (git-ignored) and run: python deploy_teams.py
+# Names: 2-20 characters, lowercase letters, digits and '-' (they become resource names and TOKENWARS_TEAM).
+team-alpha
+team-bravo

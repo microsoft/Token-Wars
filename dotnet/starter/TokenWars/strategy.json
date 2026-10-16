@@ -13,5 +13,5 @@
   "escalation": false,
   "use_gateway": true,
   "retry_on_throttle": false,
-  "concurrency": 8
+  "concurrency": 2
 }

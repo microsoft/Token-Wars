@@ -10,6 +10,12 @@ Related: [coach-guide.md](coach-guide.md) · [troubleshooting.md](troubleshootin
 
 ## Part A — Each team (own subscription)
 
+> [!WARNING]
+> **If your team doesn't have an Azure subscription**, skip Part A except the tool versions you need to run the app
+> (Python 3.10+ or .NET 8, git). Tell your coach your team name before T-3 days; the coach creates your gateway in the
+> shared-infrastructure mode (Part C) and sends you a `.env` (repo root) and a `models.json` (`shared/config/`). On
+> T-1, run `doctor` with those files.
+
 ### A1. Access and roles (T-7 days)
 
 - [ ] An Azure subscription for the team (sandbox / pay-as-you-go is fine) with **no Azure Policy** that blocks:
@@ -134,3 +140,20 @@ terraform output next_steps
 | Event | Announce at kickoff: Fireworks limitations and unverified prices; the `custom` demo model is not eligible for the leaderboard. | [ ] |
 | **After** | **Cost cleanup:** `finetune delete` + `finetune status` (no deployment → no hosting fee), `register_custom_model.py --remove --write-pricing`, `git checkout shared/config/pricing.json`; export results (`GET /api/submissions`) and delete the leaderboard app; `terraform destroy` in the coach subscription; remind teams to `terraform destroy`. | [ ] |
 | After +1 d | Check Cost Management in the coach subscription for anything still billing (APIM, Container Apps, fine-tuned deployment). | [ ] |
+
+---
+
+## Part C — Coach: shared-infrastructure mode (only for teams without a subscription)
+
+> [!WARNING]
+> Exception path. Teams with a subscription follow Part A. Details: [infra/shared/README.md](../infra/shared/README.md).
+
+| When | What | Done |
+|---|---|---|
+| T-7 d | Coach stack in `infra/` deployed with this kit version (`terraform apply` adds the `shared_mode_config` output). Enable what shared teams need **before** creating their gateways: `deploy_fireworks`, `deploy_selfhosted_model`, `deploy_secondary_region` (3.5c failover). | [ ] |
+| T-7 d | Capacity: shared teams use the coach deployments' TPM (answers **and** judge). Raise `capacity` of premium/balanced/economy/judge for *teams × concurrency*, or ask teams to keep `concurrency` low. | [ ] |
+| T-7 d | Dry run: `teams.txt` with one test team → `python deploy_teams.py` → copy `out/<team>/.env` + `models.json` into a clean clone → `doctor` (judge included) → `python set_policy.py --policy ../policies/ai-gateway-solution.xml --team <test>` → `run --limit 20` → `python deploy_teams.py --destroy`. | [ ] |
+| T-1 d | "Own the Weights": register `custom` **before** the final `deploy_teams.py` (or re-run it afterwards) so every team `models.json` contains it. | [ ] |
+| T-1 d | Final `teams.txt`; `python deploy_teams.py`; send each team **only** its own `.env` / `models.json` over a private channel. Teams run `doctor` (allow a few minutes for RBAC propagation). | [ ] |
+| Event | Collect policy files for 3.5 / 3.6 and apply them with `set_policy.py --team`. Show App Insights / Foundry portal on screen for shared teams. | [ ] |
+| **After** | `python deploy_teams.py --destroy` (team RGs + role assignments on the coach Foundry), delete `infra/shared/out/` and `team-policies/`, rotate the Fireworks key if `fireworks_backend_auth = "api_key"`, then `terraform destroy` in `infra/`. | [ ] |

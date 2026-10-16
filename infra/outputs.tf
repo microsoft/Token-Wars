@@ -127,6 +127,53 @@ output "generated_files" {
   }
 }
 
+# Consumed by infra/shared (shared-infrastructure mode for teams without an Azure subscription).
+# Sensitive: contains the Fireworks key (only used when fireworks_backend_auth = "api_key") and the leaderboard key.
+output "shared_mode_config" {
+  description = "Coach settings for infra/shared: per-team APIMs in front of this deployment's Foundry resources."
+  sensitive   = true
+  value = {
+    subscription_id      = data.azurerm_client_config.current.subscription_id
+    location             = azurerm_resource_group.rg.location
+    suffix               = local.suffix
+    coach_team           = var.team_name
+    tags                 = var.tags
+    apim_sku             = var.apim_sku
+    apim_publisher_email = var.apim_publisher_email
+    apim_consumers       = var.apim_consumers
+    tokens_per_minute    = var.tokens_per_minute_per_consumer
+    pool_models          = [for key in ["premium", "balanced", "economy"] : local.deployment_names[key]]
+    judge_deployment     = azurerm_cognitive_deployment.judge.name
+    ai_base_url          = local.ai_base_url
+    primary = {
+      id        = azurerm_cognitive_account.ai.id
+      subdomain = azurerm_cognitive_account.ai.custom_subdomain_name
+    }
+    secondary = local.secondary_enabled ? {
+      id        = azurerm_cognitive_account.ai_secondary[0].id
+      subdomain = azurerm_cognitive_account.ai_secondary[0].custom_subdomain_name
+      location  = var.secondary_location
+    } : null
+    fireworks = local.fireworks_enabled ? {
+      id               = azurerm_cognitive_account.fireworks[0].id
+      backend_url      = "https://${azurerm_cognitive_account.fireworks[0].custom_subdomain_name}.${local.ai_host_suffix}/openai"
+      base_url         = local.fireworks_base_url
+      auth             = var.fireworks_backend_auth
+      api_key          = var.fireworks_backend_auth == "api_key" ? azurerm_cognitive_account.fireworks[0].primary_access_key : ""
+      models           = sort(values(local.fireworks_deployment_names))
+      failover_mapping = local.failover_model_map
+    } : null
+    selfhosted = var.deploy_selfhosted_model ? {
+      base_url = local.selfhosted_base_url
+      model    = var.selfhosted_model
+    } : null
+    log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+    models                     = local.all_models
+    leaderboard_url            = var.leaderboard_url
+    leaderboard_key            = var.leaderboard_key
+  }
+}
+
 output "next_steps" {
   description = "What to do next."
   value       = <<-EOT

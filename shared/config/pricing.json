@@ -4,19 +4,83 @@
   "gpt_5_6_note": "GPT-5.6 Standard Global short-context rates checked 2026-10-09 at https://azure.microsoft.com/en-us/blog/gpt-5-6-now-available-in-microsoft-foundry/. Sol uses promotional input/output rates ($4/$20) from 2026-09-01 through at least 2026-11-30; published cached input is $0.50. Terra = $2/$0.20/$12; Luna = $0.20/$0.02/$1.20 (input/cached/output per 1M tokens). Recheck after the promotion or when using long context, Data Zone, Regional or Priority deployments. GPT-5.4 prices remain only for existing deployments and historical comparisons during migration.",
   "note": "Illustrative list prices per 1M tokens. Update to current Azure pricing before the event. Values = Azure Global (Standard) pay-as-you-go list prices; Llama 3.3 70B Global ($0.71/$0.71) checked on the Azure Foundry Models pricing page in Sep 2026. DataZone/Regional deployments cost ~10% more. Reasoning tokens are billed as output tokens. gpt-4.1* keys are kept for teams that still have access to the (deprecated) GPT-4.1 family. The fw-* key is Fireworks on Foundry, Global Standard pay-per-token. FW-GLM-5.3-Flash pricing ($0.15/$0.03/$0.50 input/cached/output) was checked against public Fireworks and Azure pricing references on 2026-10-10 but remains verified=false until confirmed in the Azure pricing calculator for the event subscription.",
   "models": {
-    "gpt-5.5":                {"input_per_1m": 5.00, "cached_input_per_1m": 0.50,  "output_per_1m": 30.00},
-    "gpt-5.6-sol":            {"input_per_1m": 4.00, "cached_input_per_1m": 0.50,  "output_per_1m": 20.00},
-    "gpt-5.6-terra":          {"input_per_1m": 2.00, "cached_input_per_1m": 0.20,  "output_per_1m": 12.00},
-    "gpt-5.6-luna":           {"input_per_1m": 0.20, "cached_input_per_1m": 0.02,  "output_per_1m": 1.20},
-    "gpt-5.4":                {"input_per_1m": 2.50, "cached_input_per_1m": 0.25,  "output_per_1m": 15.00},
-    "gpt-5.4-mini":           {"input_per_1m": 0.75, "cached_input_per_1m": 0.075, "output_per_1m": 4.50},
-    "gpt-5.4-nano":           {"input_per_1m": 0.20, "cached_input_per_1m": 0.02,  "output_per_1m": 1.25},
-    "gpt-4.1":                {"input_per_1m": 2.00, "cached_input_per_1m": 0.50,  "output_per_1m": 8.00},
-    "gpt-4.1-mini":           {"input_per_1m": 0.40, "cached_input_per_1m": 0.10,  "output_per_1m": 1.60},
-    "gpt-4.1-nano":           {"input_per_1m": 0.10, "cached_input_per_1m": 0.025, "output_per_1m": 0.40},
-    "llama-3.3-70b-instruct": {"input_per_1m": 0.71, "cached_input_per_1m": 0.71,  "output_per_1m": 0.71},
-    "selfhosted":             {"input_per_1m": 0.0,  "cached_input_per_1m": 0.0,   "output_per_1m": 0.0},
-    "text-embedding-3-small": {"input_per_1m": 0.02, "cached_input_per_1m": 0.02,  "output_per_1m": 0.0},
-    "fw-glm-5.3-flash":          {"input_per_1m": 0.15, "cached_input_per_1m": 0.03,  "output_per_1m": 0.50,  "verified": false}
+    "gpt-5.5": {
+      "input_per_1m": 5.0,
+      "cached_input_per_1m": 0.5,
+      "output_per_1m": 30.0
+    },
+    "gpt-5.6-sol": {
+      "input_per_1m": 4.0,
+      "cached_input_per_1m": 0.5,
+      "output_per_1m": 20.0
+    },
+    "gpt-5.6-terra": {
+      "input_per_1m": 2.0,
+      "cached_input_per_1m": 0.2,
+      "output_per_1m": 12.0
+    },
+    "gpt-5.6-luna": {
+      "input_per_1m": 0.2,
+      "cached_input_per_1m": 0.02,
+      "output_per_1m": 1.2
+    },
+    "gpt-5.4": {
+      "input_per_1m": 2.5,
+      "cached_input_per_1m": 0.25,
+      "output_per_1m": 15.0
+    },
+    "gpt-5.4-mini": {
+      "input_per_1m": 0.75,
+      "cached_input_per_1m": 0.075,
+      "output_per_1m": 4.5
+    },
+    "gpt-5.4-nano": {
+      "input_per_1m": 0.2,
+      "cached_input_per_1m": 0.02,
+      "output_per_1m": 1.25
+    },
+    "gpt-4.1": {
+      "input_per_1m": 2.0,
+      "cached_input_per_1m": 0.5,
+      "output_per_1m": 8.0
+    },
+    "gpt-4.1-mini": {
+      "input_per_1m": 0.4,
+      "cached_input_per_1m": 0.1,
+      "output_per_1m": 1.6
+    },
+    "gpt-4.1-nano": {
+      "input_per_1m": 0.1,
+      "cached_input_per_1m": 0.025,
+      "output_per_1m": 0.4
+    },
+    "llama-3.3-70b-instruct": {
+      "input_per_1m": 0.71,
+      "cached_input_per_1m": 0.71,
+      "output_per_1m": 0.71
+    },
+    "selfhosted": {
+      "input_per_1m": 0.0,
+      "cached_input_per_1m": 0.0,
+      "output_per_1m": 0.0
+    },
+    "text-embedding-3-small": {
+      "input_per_1m": 0.02,
+      "cached_input_per_1m": 0.02,
+      "output_per_1m": 0.0
+    },
+    "fw-glm-5.3-flash": {
+      "input_per_1m": 0.15,
+      "cached_input_per_1m": 0.03,
+      "output_per_1m": 0.5,
+      "verified": false
+    },
+    "custom-finetuned": {
+      "input_per_1m": 0.05,
+      "cached_input_per_1m": 0.05,
+      "output_per_1m": 0.15,
+      "hourly_cost_usd": 0.65,
+      "note": "Coach demo only (Own the Weights). Hosting fee is billed per hour and is NOT part of the score."
+    }
   }
 }

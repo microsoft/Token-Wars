@@ -31,6 +31,25 @@ Full per-team and coach checklist: [pre-event-checklist.md](pre-event-checklist.
 Hand out per team: team name, `leaderboard_url`, `leaderboard_key` (go into `terraform.tfvars`). The subscription is
 the team's own.
 
+### Exception: teams without an Azure subscription
+
+> [!WARNING]
+> **If a team doesn't have a subscription**, keep everyone else on the normal path and use the shared-infrastructure
+> mode for that team only ([infra/shared/README.md](../infra/shared/README.md)). The coach deploys the normal stack in
+> `infra/` once (coach subscription, with Fireworks / Ollama / secondary region / `custom` enabled as needed), lists
+> the teams in `infra/shared/teams.txt` and runs `python deploy_teams.py`. Each team gets its own resource group with
+> an APIM (model API + coach-managed judge API) that routes to the coach's Foundry, Fireworks, Ollama and `custom`
+> models with managed identity. Hand each team **only** its `out/<team>/.env` (repo root) and `out/<team>/models.json`
+> (`shared/config/`). No Foundry/Fireworks key leaves the coach subscription; the judge uses the team's own
+> `JUDGE_API_KEY` on `/judge/v1/`.
+
+| When | What (shared mode only) |
+|---|---|
+| T-7 d | Size the coach deployments for **all** shared teams (TPM is shared, judge included). Dry-run `deploy_teams.py` with one test team, `doctor`, `set_policy.py --team <test> --policy ../policies/ai-gateway-solution.xml`, then `deploy_teams.py --destroy`. |
+| T-1 d | Final `teams.txt`, `deploy_teams.py`, send the files privately; teams run `doctor` (RBAC can take a few minutes). |
+| Challenge 3.5 / 3.6 | Teams send their edited `ai-gateway-starter.xml`; apply it with `python set_policy.py --policy <file> --team <team>`. A broken template only fails that team and keeps its previous policy. |
+| After | `python deploy_teams.py --destroy` **before** `terraform destroy` in `infra/`; delete `infra/shared/out/`. |
+
 ---
 
 ## 2. Run of show
@@ -158,6 +177,11 @@ Never let a team start the Fireworks opt-in or deployment during Challenge 2: up
   throughput/latency; that is the trade-off.
 - Demo idea: set `tokens_per_minute_per_consumer = 2000`, run `ask` a few times with the support-squad key → 429 +
   `Retry-After`; the checkout-squad key still works.
+- **Shared-infrastructure teams** cannot run `terraform apply`: they send their policy file and you run
+  `python set_policy.py --policy <file> --team <team>` in `infra/shared`. Their `.env` contains `APIM_KEY_CHECKOUT_SQUAD`
+  / `APIM_KEY_SUPPORT_SQUAD` for the per-consumer test. Regional failover (3.5c) only works if your coach stack has
+  `deploy_secondary_region = true`; show App Insights (`appi-tws-<team>-…`) on screen — they have no portal access.
+  For 3.6, don't lower shared capacities to provoke 429s (it hits every team): demo it yourself.
 
 ### Challenge 3.6 — "Multi-Provider Failover" (stretch)
 - Adds **failover only**; provider routing and provider telemetry already work in every policy.
@@ -353,6 +377,9 @@ deployed — delete it right after the session).
 
 Biggest risk to the budget: teams looping full baseline runs. Suggest `--limit 20` for experiments and full runs only
 before submitting. Remind everyone to `terraform destroy` — APIM and Container Apps bill per hour even when idle.
+
+Shared-infrastructure mode moves the per-team model, judge and APIM costs into the coach subscription (one APIM per
+shared team, same SKU as the coach stack). Run `python deploy_teams.py --destroy` in `infra/shared` right after the event.
 
 ---
 
