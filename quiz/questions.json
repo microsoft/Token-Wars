@@ -1,0 +1,70 @@
+{
+  "title": "Token Wars - Takeaway Arena",
+  "questions": [
+    {
+      "id": "token-diet",
+      "challenge": "Challenge 1 - The Token Diet",
+      "prompt": "Which change reduces input tokens without removing the context needed to answer a customer?",
+      "options": [
+        "Include the entire knowledge base in every request",
+        "Retrieve only relevant articles and the current customer's order data",
+        "Remove all context and let the model guess",
+        "Increase the maximum output tokens"
+      ],
+      "correct_option": 1,
+      "takeaway": "You learned to send the right context, not all the context. Targeted retrieval and customer-scoped data reduce token cost while preserving answer quality."
+    },
+    {
+      "id": "prompt-cache",
+      "challenge": "Challenge 1 - The Token Diet",
+      "prompt": "How should you arrange a prompt to make provider-side prefix caching more effective?",
+      "options": [
+        "Put timestamps and changing order data first",
+        "Randomize the instructions on every request",
+        "Keep stable instructions at the beginning and put dynamic data later",
+        "Assume prompt caching eliminates all model charges"
+      ],
+      "correct_option": 2,
+      "takeaway": "You learned that stable prefixes make prompt reuse possible. Prompt caching discounts reusable input; response caching can avoid a model call entirely when reuse is safe."
+    },
+    {
+      "id": "model-choice",
+      "challenge": "Challenge 2 - Bring Your Own Model",
+      "prompt": "What is the best way to decide whether a cheaper or open-weight model is a good replacement?",
+      "options": [
+        "Compare cost per successful answer on the same workload while meeting the quality bar",
+        "Choose the model with the lowest advertised token price without testing",
+        "Compare only one easy question",
+        "Assume self-hosted models have no infrastructure cost"
+      ],
+      "correct_option": 0,
+      "takeaway": "You learned to measure value, not just token price. Compare models on the same workload, include hosting costs where relevant, and keep quality at or above the 85% bar."
+    },
+    {
+      "id": "routing",
+      "challenge": "Challenge 3 - Route & Rule",
+      "prompt": "Which routing strategy balances cost and answer quality?",
+      "options": [
+        "Send every request to Premium",
+        "Send every request to Economy and never escalate",
+        "Retry every failed request forever",
+        "Use Economy for simple requests, Balanced for standard ones, and Premium for complex requests, with bounded escalation"
+      ],
+      "correct_option": 3,
+      "takeaway": "You learned to match model capability to task difficulty. Routing and bounded escalation reserve expensive capacity for the requests that actually need it."
+    },
+    {
+      "id": "quality-gate",
+      "challenge": "Final Showdown - Measure What Matters",
+      "prompt": "A strategy is very cheap but answers only 78% of the full workload correctly. Is it a valid winning run?",
+      "options": [
+        "Yes, because the lowest total spend always wins",
+        "No, it must meet at least 85% quality on the full 100-question workload before cost per success is ranked",
+        "Yes, if its latency is low enough",
+        "Yes, if it passes a smaller sample of easy questions"
+      ],
+      "correct_option": 1,
+      "takeaway": "You learned to optimize cost per successful answer under a quality constraint. Savings only count when the full workload still meets the agreed quality bar."
+    }
+  ]
+}

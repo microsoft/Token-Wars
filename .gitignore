@@ -35,6 +35,7 @@ infra/shared/out/
 
 # Leaderboard data
 leaderboard/data/
+quiz/data/
 
 # Editors / OS
 .vscode/

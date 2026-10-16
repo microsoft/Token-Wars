@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d1b">
+  <title>Token Wars - Takeaway Arena</title>
+  <link rel="icon" href="/qr.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">BUILD / ROUTE / OPTIMIZE</div>
+    <h1>Token Wars<span>Takeaway Arena</span></h1>
+    <p id="subtitle">Turn your challenges into lasting knowledge.</p>
+  </header>
+  <main>
+    <p id="connection" class="status" role="status" aria-live="polite">Connecting to the arena...</p>
+    <noscript>This quiz requires JavaScript. Please enable it and reload.</noscript>
+    <section id="dashboard" hidden aria-label="Live quiz dashboard">
+      <div class="arena">
+        <aside class="panel join-panel">
+          <div class="eyebrow" id="join-heading">SCAN. JOIN. REINFORCE.</div>
+          <img class="qr" src="/qr.svg" alt="QR code linking to the mobile quiz" width="244" height="244">
+          <h2>Join the takeaway quiz</h2>
+          <p>No sign-in. Choose your team.<br>One response per person.</p>
+          <a id="join-link" href="/join">Open the mobile quiz</a>
+          <p class="muted small" id="join-url"></p>
+        </aside>
+        <div class="panel standings">
+          <div class="section-head"><h2>Team leaderboard</h2><span id="phase" class="badge">LIVE</span></div>
+          <div class="metrics">
+            <div><strong id="participants">0</strong><span>participants</span></div>
+            <div><strong id="correct-total">0</strong><span>correct answers</span></div>
+            <div><strong id="question-count">5</strong><span>questions</span></div>
+          </div>
+          <p class="muted small">Ranked by team accuracy, not team size. Equal accuracy shares a rank.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th scope="col">Rank</th><th scope="col">Team</th><th scope="col">Accuracy</th><th scope="col">Correct</th><th scope="col">People</th></tr></thead>
+              <tbody id="rankings"></tbody>
+            </table>
+          </div>
+          <p class="muted small">Correct = total correct answers / total answers submitted by the team.</p>
+        </div>
+      </div>
+      <section class="panel debrief">
+        <div class="eyebrow">THE WIN IS WHAT YOU LEARNED</div>
+        <h2>Answers &amp; achievements</h2>
+        <p id="reveal-message">Answers stay hidden until the coach closes the quiz and reveals the takeaways.</p>
+        <div id="board-takeaways" class="takeaways"></div>
+      </section>
+      <section class="panel coach" aria-label="Coach controls">
+        <h2>Coach controls</h2>
+        <p class="muted small">Use your coach-only key. Export results before resetting the event.</p>
+        <div class="actions">
+          <button type="button" data-action="close">Close responses</button>
+          <button type="button" data-action="reveal">Reveal answers</button>
+          <button type="button" data-action="export">Download results</button>
+          <button type="button" class="danger" data-action="reset">Reset event</button>
+        </div>
+        <p id="coach-status" role="status" aria-live="polite"></p>
+      </section>
+    </section>
+    <section id="participant" class="mobile-panel" hidden aria-label="Participant quiz">
+      <div class="panel">
+        <div class="eyebrow" id="mobile-phase">YOUR TEAM. YOUR TAKEAWAYS.</div>
+        <h2 id="mobile-title">Ready to put it all together?</h2>
+        <p id="mobile-description">Choose one answer per question. You can submit once; answers will be revealed by the coach.</p>
+        <form id="quiz-form">
+          <label for="team" class="team-label">Your team</label>
+          <select id="team" name="team" required><option value="">Choose your team</option></select>
+          <div id="questions"></div>
+          <p id="progress" class="muted" aria-live="polite"></p>
+          <button id="submit" type="submit" class="primary">Submit my answers</button>
+        </form>
+        <p id="submit-status" role="status" aria-live="polite"></p>
+      </div>
+      <section id="mobile-debrief" class="panel debrief" hidden>
+        <h2>Your takeaways</h2>
+        <div id="mobile-takeaways" class="takeaways"></div>
+      </section>
+      <a class="back-link" href="/">View the team leaderboard</a>
+    </section>
+  </main>
+  <dialog id="coach-dialog" aria-labelledby="coach-title">
+    <form id="coach-form">
+      <h2 id="coach-title">Coach action</h2>
+      <p id="coach-description"></p>
+      <label for="coach-key">Coach key</label>
+      <input id="coach-key" type="password" required autocomplete="off">
+      <label id="reset-label" for="reset-confirmation" hidden>Type RESET to permanently clear every response</label>
+      <input id="reset-confirmation" autocomplete="off" hidden>
+      <p id="coach-error" class="error" role="alert"></p>
+      <div class="actions">
+        <button id="cancel-coach" type="button">Cancel</button>
+        <button id="confirm-coach" type="submit" class="primary">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+  <footer>Lower cost. Stronger quality. Lasting takeaways. <span id="updated"></span></footer>
+</body>
+</html>

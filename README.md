@@ -90,6 +90,7 @@ Coach automation should also use `--premium-key` / `--balanced-key` for the brea
 ├── python/starter|solution   Python app (requests only)       -> python -m tokenwars ...
 ├── dotnet/starter|solution   .NET 8 app (no NuGet packages)    -> dotnet run -- ...
 ├── leaderboard/              stdlib-only leaderboard server + Dockerfile (for coaches)
+├── quiz/                     mobile takeaway quiz, QR dashboard, team accuracy ranking + Azure deploy script
 ├── coach/                    coach guide, scoring rules, troubleshooting
 │   ├── pre-event-checklist.md  what each team and the coach must do before the event
 │   └── own-the-weights/      coach-only demo: fine-tune a small open-weight model, compare, break-even (coach subscription)
@@ -97,6 +98,12 @@ Coach automation should also use `--premium-key` / `--balanced-key` for the brea
 ```
 
 ## Prerequisites
+
+**Coach takeaway quiz:** [quiz/README.md](quiz/README.md) describes the standalone
+English-language mobile quiz. Participants scan a QR code and answer up to five
+questions; the coach dashboard shows team accuracy and reveals answers and
+reinforcement messages after closing responses. Deploy it separately to Azure
+Container Apps with `az containerapp up`, like the leaderboard.
 
 Full list with commands and timing: [`coach/pre-event-checklist.md`](coach/pre-event-checklist.md).
 

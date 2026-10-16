@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!server.py
+!qr.py
+!questions.json
+!teams.json
+!static/
+!static/**
