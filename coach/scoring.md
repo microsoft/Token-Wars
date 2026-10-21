@@ -41,6 +41,20 @@ cost_per_success_usd = total_cost_usd / max(successes, 1)
   Use outbound **Provider Tokens** grouped by lowercase `team`/`provider` for the serving-provider split;
   do not sum it with native requested-route LLM metrics. Failed attempts without reported usage remain uncounted.
 
+## Decision routing and verification
+
+Optional TODOs 3.2b/3.3b do not change the judge, pass threshold or ranking. Microsoft-Decision-1 is always deployed,
+but it is only called when the strategy enables it (or by `doctor`). Its native `usage.input_tokens` and
+`usage.output_tokens` are normalized into the existing call accounting, with no invented cache discount.
+Routing, accepted/rejected verification and any later answer-model calls all count toward the team's total.
+`decision_calls` is an audit trail, not extra answer-model hops in `model_path`.
+
+The USD 0.042/1M-token Sweden Central Retail Prices API snapshot is marked `verified: false` until the coach
+confirms the event deployment/SKU rate. Freeze the same price for every team. Missing/invalid prices fail before
+spending; missing usage aborts the run rather than producing an artificially cheap submission. Invalid decisions
+with known usage fail the item and still cost money. Neither Decision feature may read judge-only workload fields.
+Use full `run` executions to compare strategies: `compare` intentionally disables routing and verification.
+
 ## Validity gate
 
 A run is **valid** only if:

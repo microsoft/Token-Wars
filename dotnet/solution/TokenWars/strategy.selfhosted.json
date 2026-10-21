@@ -11,6 +11,8 @@
   "default_model": "selfhosted",
   "routing": "none",
   "escalation": false,
+  "verify_answers": false,
+  "decision_threshold": 0.8,
   "use_gateway": true,
   "retry_on_throttle": false,
   "concurrency": 1

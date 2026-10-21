@@ -97,12 +97,20 @@ If you switch on a flag whose TODO is not implemented yet, the app stops **befor
 | 2.3 | BYOM | Model-specific prompt adaptation | `TokenWars/Prompts.cs` (`ModelSpecificInstructions`) | – (automatic for `open`, `selfhosted`, `custom`, `fw`, `fw_*`) |
 | 3.1 | Route & Rule | Rules router | `TokenWars/Router.cs` (`RouteRules`) | `"routing": "rules"` |
 | 3.2 | Route & Rule | Classifier router (economy) | `TokenWars/Router.cs` (`RouteClassifierAsync`) | `"routing": "classifier"` |
+| 3.2b | Route & Rule (optional) | Typed Decision routing | `TokenWars/Router.cs` (`RouteDecisionAsync`) | `"routing": "decision"` |
 | 3.3 | Route & Rule | Escalation on `ESCALATE` | `TokenWars/Pipeline.cs` (`AnswerCoreAsync`, step 8) | `"escalation": true` |
+| 3.3b | Route & Rule (optional) | Verify answers before escalating | `TokenWars/Pipeline.cs` (`VerifyAnswerAsync`) | `"verify_answers": true`, requires `"escalation": true` |
 | 3.4 | Route & Rule | Throttle-aware retry (429 + Retry-After) | `TokenWars/LlmClient.cs` (`SendWithRetryAsync`) | `"retry_on_throttle": true` |
 | 3.5 | Route & Rule | Chat budgets, provider telemetry enrichment, pool/retry resilience | `infra/policies/ai-gateway-starter.xml` | gateway already required |
 | stretch | Token Diet | Embedding retrieval | `TokenWars/ContextBuilder.cs` (`EmbeddingRetrievalAsync`) | `"retrieval": "embedding"` |
 
 ## Rules of the game
+
+Microsoft-Decision-1 is **always deployed** by Terraform; the optional exercises remain disabled until implemented.
+`Decision.cs` provides typed requests/readers, mocks and accounting. `decision_threshold` defaults to `0.8` for
+routing fallback and verification acceptance. Explicit `ESCALATE`, empty answers and premium skip verification;
+cache hits skip both features. `run` compares strategies; `compare` disables both features and excludes Decision
+from answer models. See the [Decision guide](../../README.md#optional-decision-exercises-required-deployment).
 
 - The pipeline may only use `id`, `customer_id` and `question` of each workload item. `category`, `difficulty`,
   `reference_answer` and `must_include` are ground truth for the judge – using them for routing = disqualification.

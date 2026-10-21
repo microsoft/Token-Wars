@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 import sys
 from dataclasses import asdict, dataclass, field, fields
@@ -17,7 +18,7 @@ APP_DIR = Path(__file__).resolve().parent.parent  # python/<variant>/
 # "Today" for the ByteCart scenario (used in the prompt-cache-friendly layout).
 SCENARIO_DATE = "2026-09-15"
 
-MODEL_KEYS = ["premium", "balanced", "economy", "open", "selfhosted", "embedding", "judge"]
+MODEL_KEYS = ["premium", "balanced", "economy", "open", "selfhosted", "embedding", "judge", "decision"]
 
 _MODEL_DEFAULTS = {
     "base_url": "",
@@ -38,6 +39,7 @@ _GPT56 = {"via_gateway": True, "max_tokens_param": "max_completion_tokens", "sup
 # Used only in mock mode when neither models.json nor models.example.json exists.
 _BUILTIN_MODELS = {
     "models": {
+        "decision": {"deployment": "decision", "pricing_key": "microsoft-decision-1", "type": "decision"},
         "premium": {"deployment": "gpt-5.6-sol", "pricing_key": "gpt-5.6-sol", **_GPT56},
         "balanced": {"deployment": "gpt-5.6-terra", "pricing_key": "gpt-5.6-terra", **_GPT56},
         "economy": {"deployment": "gpt-5.6-luna", "pricing_key": "gpt-5.6-luna", **_GPT56},
@@ -55,6 +57,7 @@ _BUILTIN_PRICING = {
     "currency": "USD",
     "models": {
         "gpt-5.5": {"input_per_1m": 5.00, "cached_input_per_1m": 0.50, "output_per_1m": 30.00},
+        "microsoft-decision-1": {"input_per_1m": 0.042, "cached_input_per_1m": 0.042, "output_per_1m": 0.042},
         "gpt-5.6-sol": {"input_per_1m": 4.00, "cached_input_per_1m": 0.50, "output_per_1m": 20.00},
         "gpt-5.6-terra": {"input_per_1m": 2.00, "cached_input_per_1m": 0.20, "output_per_1m": 12.00},
         "gpt-5.6-luna": {"input_per_1m": 0.20, "cached_input_per_1m": 0.02, "output_per_1m": 1.20},
@@ -92,8 +95,10 @@ class Strategy:
     semantic_cache: bool = False
     semantic_cache_threshold: float = 0.92
     default_model: str = "premium"
-    routing: str = "none"  # none | rules | classifier
+    routing: str = "none"  # none | rules | classifier | decision
     escalation: bool = False
+    verify_answers: bool = False
+    decision_threshold: float = 0.8
     use_gateway: bool = True
     retry_on_throttle: bool = False
     concurrency: int = 8
@@ -123,8 +128,16 @@ def load_strategy(path: Path) -> Strategy:
         raise ConfigError("APIM is required: strategy.use_gateway must be true (the judge is the only direct exception).")
     if strategy.retrieval not in ("all", "keyword", "embedding"):
         raise ConfigError(f'strategy.retrieval must be "all", "keyword" or "embedding" (got "{strategy.retrieval}")')
-    if strategy.routing not in ("none", "rules", "classifier"):
-        raise ConfigError(f'strategy.routing must be "none", "rules" or "classifier" (got "{strategy.routing}")')
+    if strategy.routing not in ("none", "rules", "classifier", "decision"):
+        raise ConfigError(f'strategy.routing must be "none", "rules", "classifier" or "decision" (got "{strategy.routing}")')
+    if not isinstance(strategy.verify_answers, bool):
+        raise ConfigError("strategy.verify_answers must be a JSON boolean.")
+    if strategy.verify_answers and strategy.escalation is not True:
+        raise ConfigError("strategy.verify_answers requires escalation=true.")
+    if (isinstance(strategy.decision_threshold, bool)
+            or not isinstance(strategy.decision_threshold, (int, float))
+            or not math.isfinite(strategy.decision_threshold) or not 0 <= strategy.decision_threshold <= 1):
+        raise ConfigError("strategy.decision_threshold must be a finite number between 0 and 1.")
     strategy.top_k = max(1, int(strategy.top_k))
     strategy.concurrency = max(1, int(strategy.concurrency))
     if strategy.max_output_tokens is not None:

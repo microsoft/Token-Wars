@@ -45,7 +45,10 @@ def load_workload(root: Path) -> list[dict[str, Any]]:
 def preflight(config: AppConfig, strategy: Strategy) -> None:
     """Runs one fake item fully offline so an enabled-but-unimplemented TODO fails fast, before any spend."""
     client = LlmClient(config, use_gateway=False, retry_on_throttle=strategy.retry_on_throttle, mock=True)
-    Pipeline(config, strategy, client, persist_embeddings=False).answer(dict(PREFLIGHT_ITEM))
+    pipeline = Pipeline(config, strategy, client, persist_embeddings=False)
+    if strategy.verify_answers:
+        pipeline.verify_answer("What is the return window?", "", "Returns: 30 days.", "", "30 days.", [])
+    pipeline.answer(dict(PREFLIGHT_ITEM))
 
 
 def utc_stamp() -> tuple[str, str]:
@@ -310,7 +313,7 @@ def cmd_compare(config: AppConfig, strategy: Strategy, models: list[str], judge_
         if model is None or model.type != "chat":
             _say(f"⚠️  Skipping '{key}': not a configured chat model in {config.models_source}")
             continue
-        model_strategy = strategy.copy(routing="none", default_model=key, exact_cache=False,
+        model_strategy = strategy.copy(routing="none", default_model=key, exact_cache=False, verify_answers=False,
                                        semantic_cache=False, escalation=False)
         preflight(config, model_strategy)
         _say(f"\n▶ {key} ({model.deployment})")
@@ -453,6 +456,10 @@ def cmd_doctor(config: AppConfig, strategy: Strategy) -> int:
             if model.type == "embedding":
                 result = client.embed(key, ["ping"])
                 detail = f"{len(result.vectors[0])} dims"
+            elif model.type == "decision":
+                result = client.decide({"text": "ping"}, {"ok": {"type": "noul", "instructions": "Is the text ping?"}},
+                                       purpose="doctor")
+                detail = f"Decision API reachable; probability={result.probability('ok'):.3f}"
             else:
                 result = client.chat(key, [{"role": "user", "content": "Reply with OK."}], max_tokens=doctor_max_tokens,
                                      purpose="doctor")

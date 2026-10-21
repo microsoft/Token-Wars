@@ -9,6 +9,7 @@ locals {
   pool_backend_name       = "aoai-pool"
   fireworks_backend_name  = "fireworks"
   selfhosted_backend_name = "selfhosted"
+  decision_backend_name   = "microsoft-decision"
 
   secondary_enabled  = var.secondary != null
   fireworks_enabled  = var.fireworks != null
@@ -112,6 +113,20 @@ resource "azapi_resource" "backend_primary" {
       url            = local.primary_url
       protocol       = "http"
       circuitBreaker = local.circuit_breaker
+    }
+  }
+}
+
+resource "azapi_resource" "backend_decision" {
+  type                      = "Microsoft.ApiManagement/service/backends@2024-05-01"
+  name                      = local.decision_backend_name
+  parent_id                 = azurerm_api_management.apim.id
+  schema_validation_enabled = false
+  body = {
+    properties = {
+      description = "Coach Microsoft Decision API (primary only; not OpenAI chat)"
+      url         = "https://${var.primary.subdomain}.services.ai.azure.com/providers/microsoft/v1"
+      protocol    = "http"
     }
   }
 }
@@ -246,6 +261,17 @@ resource "azurerm_api_management_api_operation" "embeddings" {
   description         = "OpenAI v1 embeddings."
 }
 
+resource "azurerm_api_management_api_operation" "decisions" {
+  operation_id        = "decisions"
+  api_name            = azurerm_api_management_api.openai.name
+  api_management_name = azurerm_api_management.apim.name
+  resource_group_name = azurerm_resource_group.rg.name
+  display_name        = "Typed decisions"
+  method              = "POST"
+  url_template        = "/v1/decisions"
+  description         = "Microsoft-Decision-1 choice/noul requests, forwarded to the native systemone API."
+}
+
 resource "azurerm_api_management_api_operation" "models" {
   operation_id        = "list-models"
   api_name            = azurerm_api_management_api.openai.name
@@ -264,17 +290,20 @@ resource "azurerm_api_management_api_policy" "openai" {
   resource_group_name = azurerm_resource_group.rg.name
 
   xml_content = templatefile(var.policy_file, {
-    backend_id            = local.primary_backend_name
-    pool_backend_id       = local.failover_backend_name
-    pool_models           = var.pool_models
-    tokens_per_minute     = var.tokens_per_minute
-    fireworks_backend_id  = local.fireworks_backend_name
-    fireworks_auth        = local.fireworks_auth
-    fireworks_models      = local.fireworks_models
-    selfhosted_enabled    = local.selfhosted_enabled
-    selfhosted_model      = local.selfhosted_enabled ? var.selfhosted.model : ""
-    selfhosted_backend_id = local.selfhosted_backend_name
-    failover_model_map    = local.failover_model_map
+    backend_id                   = local.primary_backend_name
+    pool_backend_id              = local.failover_backend_name
+    pool_models                  = var.pool_models
+    tokens_per_minute            = var.tokens_per_minute
+    fireworks_backend_id         = local.fireworks_backend_name
+    fireworks_auth               = local.fireworks_auth
+    fireworks_models             = local.fireworks_models
+    selfhosted_enabled           = local.selfhosted_enabled
+    selfhosted_model             = local.selfhosted_enabled ? var.selfhosted.model : ""
+    selfhosted_backend_id        = local.selfhosted_backend_name
+    failover_model_map           = local.failover_model_map
+    decision_backend_id          = local.decision_backend_name
+    decision_model               = var.models.decision.deployment
+    decision_requests_per_minute = var.decision_requests_per_minute
   })
 
   lifecycle {
@@ -294,6 +323,7 @@ resource "azurerm_api_management_api_policy" "openai" {
     azapi_resource.backend_pool,
     azapi_resource.backend_fireworks,
     azapi_resource.backend_selfhosted,
+    azapi_resource.backend_decision,
     azurerm_role_assignment.apim_ai,
     azurerm_api_management_logger.appi,
   ]

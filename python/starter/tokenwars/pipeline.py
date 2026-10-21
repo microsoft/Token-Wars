@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import time
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
 from .cache import ResponseCache
 from .context import ContextBuilder, is_order_specific, normalize_question, orders_to_json
+from .config import ConfigError, SCENARIO_DATE
+from .llm_client import DecisionResult, DecisionUsageError
 from .pricing import call_cost
-from .prompts import build_messages, load_baseline_template
+from .prompts import build_messages, context_block, DECISION_VERIFY_QUESTION, load_baseline_template
 from .router import TIER_MODELS, Router
 
 # Next model tier when a cheaper model answers ESCALATE (TODO 3.3).
@@ -41,6 +44,7 @@ class ItemResult:
     output_tokens: int = 0
     latency_ms: int = 0
     error: str | None = None
+    decision_calls: list[dict[str, Any]] = field(default_factory=list)
     calls: list[CallRecord] = field(default_factory=list, repr=False)
 
     @property
@@ -53,7 +57,7 @@ class ItemResult:
             "answer": self.answer, "judge_score": self.judge_score, "judge_reason": self.judge_reason,
             "success": self.success, "cost_usd": round(self.cost_usd, 8), "input_tokens": self.input_tokens,
             "cached_input_tokens": self.cached_input_tokens, "output_tokens": self.output_tokens,
-            "latency_ms": self.latency_ms, "error": self.error,
+            "latency_ms": self.latency_ms, "error": self.error, "decision_calls": self.decision_calls,
         }
 
 
@@ -69,6 +73,15 @@ class Pipeline:
         self.context = ContextBuilder(config.root, strategy, client, embeddings_file=embeddings_file)
         self.router = Router(strategy, client)
         config.model(strategy.default_model)  # fail early on an unknown default_model
+        if config.model(strategy.default_model).type != "chat":
+            raise ConfigError("default_model must be a chat model, not a decision or embedding model.")
+        if strategy.verify_answers and not strategy.escalation:
+            raise ConfigError("verify_answers requires escalation=true.")
+        if strategy.routing == "decision" or strategy.verify_answers:
+            client.validate_decision()
+            for key in TIER_MODELS.values():
+                if config.model(key).type != "chat":
+                    raise ConfigError(f'Answer tier "{key}" must be a chat model.')
         if strategy.routing != "none":
             for tier_model in TIER_MODELS.values():  # any key from models.json works, typos fail early
                 config.model(tier_model)
@@ -95,7 +108,7 @@ class Pipeline:
         started = time.perf_counter()
         try:
             self._answer(question, customer_id, result, calls)
-        except NotImplementedError:
+        except (NotImplementedError, DecisionUsageError):
             raise
         except Exception as exc:  # recorded as a failed item
             result.error = f"{type(exc).__name__}: {exc}"
@@ -175,10 +188,24 @@ class Pipeline:
         temperature, max_tokens = self.generation_settings()
         response = self.client.chat(model_key, messages, temperature=temperature, max_tokens=max_tokens)
         calls.append(response)
+        if self.strategy.verify_answers and model_key != "premium":
+            if not response.text.strip() or response.text.strip().upper().startswith("ESCALATE"):
+                return "ESCALATE"
+            if not self.verify_answer(question, customer_id, kb_text, orders_json, response.text, calls):
+                return "ESCALATE"
         return response.text
+
+    # TODO 3.3b (optional, requires 3.3) - ask a noul question using DECISION_VERIFY_QUESTION.
+    # State contains question, customer_id, SCENARIO_DATE, context_block(kb_text, orders_json), and answer.
+    # Append client.decide(..., purpose="verification") to calls BEFORE reading probability("acceptable").
+    # Accept at decision_threshold; record result.outcome and warn on rejection. The existing loop escalates.
+    def verify_answer(self, question, customer_id, kb_text, orders_json, answer, calls) -> bool:
+        raise NotImplementedError("TODO 3.3b not implemented yet - see tokenwars/pipeline.py")
 
     def _account(self, result: ItemResult, calls: list) -> None:
         for call in calls:
+            if isinstance(call, DecisionResult):
+                result.decision_calls.append({"purpose": call.purpose, "answers": call.answers, **call.outcome})
             usage = call.usage
             cost = call_cost(self.config, call.model_key, usage.prompt_tokens, usage.cached_tokens,
                              usage.completion_tokens)

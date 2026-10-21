@@ -46,7 +46,7 @@ public sealed class LlmException : Exception
 /// Minimal OpenAI-compatible v1 client (chat/completions + embeddings) with raw HttpClient + System.Text.Json.
 /// Works for Azure AI Foundry / Azure OpenAI (v1 API), API Management and Ollama. Has an offline mock mode.
 /// </summary>
-public sealed class LlmClient
+public sealed partial class LlmClient
 {
     public const int MaxRetries = 4;
     public static readonly int[] RetryableStatus = { 429, 500, 502, 503, 504 };
@@ -81,6 +81,7 @@ public sealed class LlmClient
         CancellationToken ct = default)
     {
         var model = _cfg.Model(modelKey);
+        if (model.Type != "chat") throw new ConfigException($"Model \"{modelKey}\" is not a chat model.");
         var body = new JsonObject { ["model"] = model.Deployment };
         var messageArray = new JsonArray();
         foreach (var m in messages)

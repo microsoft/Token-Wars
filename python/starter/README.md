@@ -124,12 +124,21 @@ spending anything, with `NotImplementedError: TODO x.y not implemented yet – s
 | 2.3 | BYOM | Extra instruction for non-OpenAI models (`open`, `selfhosted`, `custom`, `fw`, `fw_*`) | `tokenwars/prompts.py` | – (always active once implemented) |
 | 3.1 | Route & Rule | Rules router | `tokenwars/router.py` | `"routing": "rules"` |
 | 3.2 | Route & Rule | Classifier router (economy) | `tokenwars/router.py` | `"routing": "classifier"` |
+| 3.2b | Route & Rule (optional) | Typed Decision routing | `tokenwars/router.py` (`route_decision`) | `"routing": "decision"` |
 | 3.3 | Route & Rule | Escalation on `ESCALATE` | `tokenwars/pipeline.py` | `"escalation": true` |
+| 3.3b | Route & Rule (optional) | Verify answers before escalating | `tokenwars/pipeline.py` (`verify_answer`) | `"verify_answers": true`, requires `"escalation": true` |
 | 3.4 | Route & Rule | Throttle-aware retry (429 + Retry-After) | `tokenwars/llm_client.py` | `"retry_on_throttle": true` |
 | 3.5 | Route & Rule | Add chat budgets, enrich existing provider metrics, add pool/retry resilience | `infra/policies/ai-gateway-starter.xml` | gateway already required |
 | stretch | – | Embedding retrieval | `tokenwars/context.py` | `"retrieval": "embedding"` |
 
 To find every task, search for `TODO` in `tokenwars/`.
+
+Microsoft-Decision-1 is **always deployed** by Terraform; the optional exercises remain disabled until implemented.
+The HTTP adapter, typed response readers, usage accounting and APIM operation are provided. Use
+`decision_threshold` (default `0.8`) for routing fallback and verification acceptance. Explicit `ESCALATE`, empty
+answers and premium skip verification; cache hits skip both features. `run` compares strategies; `compare` disables
+them and excludes Decision from answer models. See the [Decision guide](../../README.md#optional-decision-exercises-required-deployment)
+for protocol, pricing, failure behavior and offline tests.
 
 ## How the pipeline works (`tokenwars/pipeline.py`)
 

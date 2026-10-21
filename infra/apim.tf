@@ -18,6 +18,7 @@ locals {
   pool_backend_name       = "aoai-pool"
   fireworks_backend_name  = "fireworks"
   selfhosted_backend_name = "selfhosted"
+  decision_backend_name   = "microsoft-decision"
   apim_fireworks_enabled  = local.apim_enabled && local.fireworks_enabled
   # backend used by the failover part of the policy: the pool if a secondary region exists, otherwise the primary
   failover_backend_name = local.secondary_enabled ? local.pool_backend_name : local.primary_backend_name
@@ -215,6 +216,22 @@ resource "azapi_resource" "backend_selfhosted" {
 # -----------------------------------------------------------------------------
 # API: https://<apim>.azure-api.net/openai/v1/...  (subscription key in the "api-key" header)
 # -----------------------------------------------------------------------------
+resource "azapi_resource" "backend_decision" {
+  count = local.apim_enabled ? 1 : 0
+
+  type                      = "Microsoft.ApiManagement/service/backends@2024-05-01"
+  name                      = local.decision_backend_name
+  parent_id                 = azurerm_api_management.apim[0].id
+  schema_validation_enabled = false
+  body = {
+    properties = {
+      description = "Microsoft Decision API (primary only; not OpenAI chat)"
+      url         = "https://${azurerm_cognitive_account.ai.custom_subdomain_name}.services.ai.azure.com/providers/microsoft/v1"
+      protocol    = "http"
+    }
+  }
+}
+
 resource "azurerm_api_management_api" "openai" {
   count = local.apim_enabled ? 1 : 0
 
@@ -261,6 +278,19 @@ resource "azurerm_api_management_api_operation" "embeddings" {
   description         = "OpenAI v1 embeddings."
 }
 
+resource "azurerm_api_management_api_operation" "decisions" {
+  count = local.apim_enabled ? 1 : 0
+
+  operation_id        = "decisions"
+  api_name            = azurerm_api_management_api.openai[0].name
+  api_management_name = azurerm_api_management.apim[0].name
+  resource_group_name = azurerm_resource_group.rg.name
+  display_name        = "Typed decisions"
+  method              = "POST"
+  url_template        = "/v1/decisions"
+  description         = "Microsoft-Decision-1 choice/noul requests, forwarded to the native systemone API."
+}
+
 resource "azurerm_api_management_api_operation" "models" {
   count = local.apim_enabled ? 1 : 0
 
@@ -283,17 +313,20 @@ resource "azurerm_api_management_api_policy" "openai" {
   resource_group_name = azurerm_resource_group.rg.name
 
   xml_content = templatefile("${path.module}/${var.apim_policy_file}", {
-    backend_id            = local.primary_backend_name
-    pool_backend_id       = local.failover_backend_name
-    pool_models           = [for key in ["premium", "balanced", "economy"] : local.deployment_names[key]]
-    tokens_per_minute     = var.tokens_per_minute_per_consumer
-    fireworks_backend_id  = local.fireworks_backend_name
-    fireworks_auth        = var.fireworks_backend_auth
-    fireworks_models      = local.fireworks_enabled ? sort(values(local.fireworks_deployment_names)) : []
-    selfhosted_enabled    = var.deploy_selfhosted_model
-    selfhosted_model      = var.selfhosted_model
-    selfhosted_backend_id = local.selfhosted_backend_name
-    failover_model_map    = local.failover_model_map
+    backend_id                   = local.primary_backend_name
+    pool_backend_id              = local.failover_backend_name
+    pool_models                  = [for key in ["premium", "balanced", "economy"] : local.deployment_names[key]]
+    tokens_per_minute            = var.tokens_per_minute_per_consumer
+    fireworks_backend_id         = local.fireworks_backend_name
+    fireworks_auth               = var.fireworks_backend_auth
+    fireworks_models             = local.fireworks_enabled ? sort(values(local.fireworks_deployment_names)) : []
+    selfhosted_enabled           = var.deploy_selfhosted_model
+    selfhosted_model             = var.selfhosted_model
+    selfhosted_backend_id        = local.selfhosted_backend_name
+    failover_model_map           = local.failover_model_map
+    decision_backend_id          = local.decision_backend_name
+    decision_model               = azurerm_cognitive_deployment.decision.name
+    decision_requests_per_minute = var.decision_requests_per_minute
   })
 
   lifecycle {
@@ -321,6 +354,7 @@ resource "azurerm_api_management_api_policy" "openai" {
     azapi_resource.backend_pool,
     azapi_resource.backend_fireworks,
     azapi_resource.backend_selfhosted,
+    azapi_resource.backend_decision,
     azurerm_role_assignment.apim_ai,
     azurerm_api_management_logger.appi,
   ]

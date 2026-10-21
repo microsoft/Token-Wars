@@ -23,6 +23,7 @@ public sealed class ItemResult
     public int OutputTokens { get; set; }
     public long LatencyMs { get; set; }
     public string? Error { get; set; }
+    public JsonArray DecisionCalls { get; } = new();
     public List<CallRecord> Calls { get; } = new();
 
     public int Escalations => Math.Max(ModelPath.Count - 1, 0);
@@ -47,6 +48,7 @@ public sealed class ItemResult
             ["output_tokens"] = OutputTokens,
             ["latency_ms"] = LatencyMs,
             ["error"] = Error,
+            ["decision_calls"] = DecisionCalls.DeepClone(),
         };
     }
 }
@@ -86,6 +88,16 @@ public sealed class Pipeline
         _context = new ContextBuilder(cfg.Root, strategy, client, embeddingsFile);
         _router = new Router(strategy, client);
         cfg.Model(strategy.DefaultModel); // fail early on an unknown default_model
+        if (cfg.Model(strategy.DefaultModel).Type != "chat")
+            throw new ConfigException("default_model must be a chat model, not a decision or embedding model.");
+        if (strategy.VerifyAnswers && !strategy.Escalation)
+            throw new ConfigException("verify_answers requires escalation=true.");
+        if (strategy.Routing == "decision" || strategy.VerifyAnswers)
+        {
+            client.ValidateDecision();
+            foreach (var key in Router.TierModels.Values)
+                if (cfg.Model(key).Type != "chat") throw new ConfigException($"Answer tier \"{key}\" must be a chat model.");
+        }
         if (strategy.Routing != "none")
         {
             foreach (var tierModel in Router.TierModels.Values) cfg.Model(tierModel); // any key from models.json works, typos fail early
@@ -117,6 +129,10 @@ public sealed class Pipeline
         try
         {
             await AnswerCoreAsync(item.Question, item.CustomerId ?? "", result, calls, ct);
+        }
+        catch (DecisionUsageException)
+        {
+            throw;
         }
         catch (NotImplementedException)
         {
@@ -232,13 +248,31 @@ public sealed class Pipeline
         var (temperature, maxTokens) = GenerationSettings();
         var response = await _client.ChatAsync(modelKey, messages, temperature, maxTokens, ct: ct);
         calls.Add(response.Call);
+        if (_strategy.VerifyAnswers && modelKey != "premium")
+        {
+            if (string.IsNullOrWhiteSpace(response.Text) || response.Text.Trim().StartsWith("ESCALATE", StringComparison.OrdinalIgnoreCase))
+                return "ESCALATE";
+            if (!await VerifyAnswerAsync(question, customerId, kbText, ordersJson, response.Text, calls, ct))
+                return "ESCALATE";
+        }
         return response.Text;
+    }
+
+    // TODO 3.3b (optional, requires 3.3) - DecideAsync with an acceptable noul question from DecisionQuestions.Verify().
+    // State: question, customer_id, today=AppInfo.ScenarioToday, context=Prompts.ContextBlock(kbText, ordersJson), answer.
+    // Add result.Call BEFORE Probability("acceptable"); accept at DecisionThreshold, RecordOutcome and warn on rejection.
+    // The existing escalation loop handles rejection. Premium, empty answers and explicit ESCALATE skip verification.
+    public Task<bool> VerifyAnswerAsync(string question, string customerId, string kbText, string ordersJson,
+        string answer, List<CallRecord> calls, CancellationToken ct = default)
+    {
+        throw new NotImplementedException("TODO 3.3b not implemented yet - see Pipeline.cs");
     }
 
     private static void Account(ItemResult result, List<CallRecord> calls)
     {
         foreach (var call in calls)
         {
+            if (call.Decision != null) result.DecisionCalls.Add(call.Decision.DeepClone());
             result.Calls.Add(call);
             result.CostUsd += call.CostUsd;
             result.InputTokens += call.PromptTokens;

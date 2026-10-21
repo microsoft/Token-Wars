@@ -16,7 +16,7 @@ public static class AppInfo
 }
 
 /// <summary>Configuration problem that should be shown to the user without a stack trace.</summary>
-public sealed class ConfigException : Exception
+public class ConfigException : Exception
 {
     public ConfigException(string message) : base(message) { }
 }
@@ -106,6 +106,8 @@ public sealed class Strategy
     public string DefaultModel { get; set; } = "premium";
     public string Routing { get; set; } = "none";
     public bool Escalation { get; set; }
+    public bool VerifyAnswers { get; set; }
+    public double DecisionThreshold { get; set; } = 0.8;
     public bool UseGateway { get; set; } = true;
     public bool RetryOnThrottle { get; set; }
     public int Concurrency { get; set; } = 8;
@@ -143,6 +145,8 @@ public sealed class Strategy
             DefaultModel = (JsonUtil.Str(o["default_model"]) ?? "premium").Trim(),
             Routing = (JsonUtil.Str(o["routing"]) ?? "none").Trim().ToLowerInvariant(),
             Escalation = JsonUtil.Bool(o["escalation"]) ?? false,
+            VerifyAnswers = JsonUtil.Bool(o["verify_answers"]) ?? false,
+            DecisionThreshold = JsonUtil.Dbl(o["decision_threshold"]) ?? 0.8,
             UseGateway = JsonUtil.Bool(o["use_gateway"]) ?? true,
             RetryOnThrottle = JsonUtil.Bool(o["retry_on_throttle"]) ?? false,
             Concurrency = JsonUtil.Int(o["concurrency"]) ?? 8,
@@ -152,8 +156,15 @@ public sealed class Strategy
             throw new ConfigException("APIM is required: strategy.use_gateway must be true (the judge is the only direct exception).");
         if (s.Retrieval is not ("all" or "keyword" or "embedding"))
             throw new ConfigException($"strategy.retrieval must be \"all\", \"keyword\" or \"embedding\" (got \"{s.Retrieval}\")");
-        if (s.Routing is not ("none" or "rules" or "classifier"))
-            throw new ConfigException($"strategy.routing must be \"none\", \"rules\" or \"classifier\" (got \"{s.Routing}\")");
+        if (s.Routing is not ("none" or "rules" or "classifier" or "decision"))
+            throw new ConfigException($"strategy.routing must be \"none\", \"rules\", \"classifier\" or \"decision\" (got \"{s.Routing}\")");
+        if (o.ContainsKey("verify_answers") && o["verify_answers"]?.GetValueKind() is not (JsonValueKind.True or JsonValueKind.False))
+            throw new ConfigException("strategy.verify_answers must be a JSON boolean.");
+        if (s.VerifyAnswers && o["escalation"]?.GetValueKind() != JsonValueKind.True)
+            throw new ConfigException("strategy.verify_answers requires escalation=true.");
+        if ((o.ContainsKey("decision_threshold") && o["decision_threshold"]?.GetValueKind() != JsonValueKind.Number)
+            || !double.IsFinite(s.DecisionThreshold) || s.DecisionThreshold < 0 || s.DecisionThreshold > 1)
+            throw new ConfigException("strategy.decision_threshold must be a finite number between 0 and 1.");
         s.TopK = Math.Max(1, s.TopK);
         s.Concurrency = Math.Max(1, s.Concurrency);
         return s;
@@ -164,6 +175,7 @@ public sealed class Strategy
         "compact_prompt", "prompt_cache_friendly", "retrieval", "top_k", "order_lookup", "max_output_tokens",
         "exact_cache", "semantic_cache", "semantic_cache_threshold", "default_model", "routing", "escalation",
         "use_gateway", "retry_on_throttle", "concurrency",
+        "verify_answers", "decision_threshold",
     };
 
     public JsonObject ToJson() => new()
@@ -180,6 +192,8 @@ public sealed class Strategy
         ["default_model"] = DefaultModel,
         ["routing"] = Routing,
         ["escalation"] = Escalation,
+        ["verify_answers"] = VerifyAnswers,
+        ["decision_threshold"] = DecisionThreshold,
         ["use_gateway"] = UseGateway,
         ["retry_on_throttle"] = RetryOnThrottle,
         ["concurrency"] = Concurrency,
@@ -559,6 +573,7 @@ public sealed class AppConfig
     private const string BuiltInMockModels = """
     {
       "models": {
+        "decision": {"deployment": "decision", "pricing_key": "microsoft-decision-1", "type": "decision", "via_gateway": true},
         "premium":  {"deployment": "gpt-5.6-sol", "base_url": "https://mock.invalid/openai/v1/", "api_key_env": "AZURE_AI_API_KEY", "pricing_key": "gpt-5.6-sol", "type": "chat", "via_gateway": true, "max_tokens_param": "max_completion_tokens", "supports_temperature": false, "extra_body": {"reasoning_effort": "none"}},
         "balanced":      {"deployment": "gpt-5.6-terra", "base_url": "https://mock.invalid/openai/v1/", "api_key_env": "AZURE_AI_API_KEY", "pricing_key": "gpt-5.6-terra", "type": "chat", "via_gateway": true, "max_tokens_param": "max_completion_tokens", "supports_temperature": false, "extra_body": {"reasoning_effort": "none"}},
         "economy":      {"deployment": "gpt-5.6-luna", "base_url": "https://mock.invalid/openai/v1/", "api_key_env": "AZURE_AI_API_KEY", "pricing_key": "gpt-5.6-luna", "type": "chat", "via_gateway": true, "max_tokens_param": "max_completion_tokens", "supports_temperature": false, "extra_body": {"reasoning_effort": "none"}},

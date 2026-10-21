@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json.Nodes;
 
 namespace TokenWars;
 
@@ -43,7 +44,22 @@ public sealed class Router
     {
         if (_strategy.Routing == "rules") return RouteRules(question, normalized, orderSpecific);
         if (_strategy.Routing == "classifier") return await RouteClassifierAsync(question, calls, ct);
+        if (_strategy.Routing == "decision") return await RouteDecisionAsync(question, calls, ct);
         return _strategy.DefaultModel;
+    }
+
+    // SOLUTION 3.2b - optional typed routing; uncertain choices use premium.
+    public async Task<string> RouteDecisionAsync(string question, List<CallRecord> calls, CancellationToken ct = default)
+    {
+        var result = await _client.DecideAsync(new JsonObject { ["question"] = question },
+            new JsonObject { ["tier"] = DecisionQuestions.Route() }, ct: ct);
+        calls.Add(result.Call);
+        var (label, probability) = result.Choice("tier", DecisionQuestions.TierCriteria);
+        bool fallback = probability < _strategy.DecisionThreshold;
+        var model = fallback ? "premium" : TierModels[label];
+        result.RecordOutcome(new JsonObject { ["model"] = model, ["fallback"] = fallback, ["probability"] = probability });
+        if (fallback) Console.Error.WriteLine($"Decision routing probability {probability:F3} below threshold; using premium.");
+        return model;
     }
 
     // SOLUTION 3.1 – deterministic rules router.

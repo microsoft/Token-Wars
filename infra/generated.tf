@@ -71,7 +71,19 @@ locals {
     } if local.fireworks_enabled
   }
 
-  all_models = merge(local.azure_models, local.selfhosted_models, local.fireworks_model_entries)
+  decision_models = {
+    decision = {
+      deployment           = azurerm_cognitive_deployment.decision.name
+      base_url             = "https://${azurerm_cognitive_account.ai.custom_subdomain_name}.services.ai.azure.com/providers/microsoft/v1/"
+      api_key_env          = "AZURE_AI_API_KEY"
+      pricing_key          = var.decision_model.pricing_key
+      type                 = "decision"
+      via_gateway          = true
+      supports_temperature = false
+    }
+  }
+
+  all_models = merge(local.azure_models, local.selfhosted_models, local.fireworks_model_entries, local.decision_models)
 
   gateway = local.apim_enabled ? {
     base_url    = "${try(azurerm_api_management.apim[0].gateway_url, "")}/openai/v1/"

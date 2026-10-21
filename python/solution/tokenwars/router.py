@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import re
+import sys
 
-from .prompts import CLASSIFIER_SYSTEM_PROMPT
+from .prompts import CLASSIFIER_SYSTEM_PROMPT, DECISION_ROUTE_QUESTION, DECISION_TIER_CRITERIA
 
 # Challenge 2.2: after `compare`, you may change which model serves each tier.
 TIER_MODELS = {"SIMPLE": "economy", "STANDARD": "balanced", "COMPLEX": "premium"}
@@ -28,7 +29,21 @@ class Router:
             return self.route_rules(question, normalized, order_specific)
         if self.strategy.routing == "classifier":
             return self.route_classifier(question, calls)
+        if self.strategy.routing == "decision":
+            return self.route_decision(question, calls)
         return self.strategy.default_model
+
+    # SOLUTION 3.2b - optional typed routing; uncertain choices use premium.
+    def route_decision(self, question: str, calls: list) -> str:
+        result = self.client.decide({"question": question}, {"tier": DECISION_ROUTE_QUESTION})
+        calls.append(result)
+        label, probability = result.choice("tier", DECISION_TIER_CRITERIA)
+        fallback = probability < self.strategy.decision_threshold
+        model = "premium" if fallback else TIER_MODELS[label]
+        result.outcome = {"model": model, "fallback": fallback, "probability": probability}
+        if fallback:
+            print(f"Decision routing probability {probability:.3f} below threshold; using premium.", file=sys.stderr)
+        return model
 
     # SOLUTION 3.1 – deterministic rules router.
     def route_rules(self, question: str, normalized: str, order_specific: bool) -> str:

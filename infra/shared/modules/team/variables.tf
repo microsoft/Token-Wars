@@ -45,6 +45,10 @@ variable "tokens_per_minute" {
   type = number
 }
 
+variable "decision_requests_per_minute" {
+  type = number
+}
+
 variable "pool_models" {
   type = list(string)
 }

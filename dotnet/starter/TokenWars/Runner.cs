@@ -142,7 +142,10 @@ public static class Runner
     public static async Task PreflightAsync(AppConfig cfg, Strategy strategy)
     {
         var client = new LlmClient(cfg, useGateway: false, retryOnThrottle: strategy.RetryOnThrottle, mock: true);
-        await new Pipeline(cfg, strategy, client, persistEmbeddings: false).AnswerAsync(PreflightItem);
+        var pipeline = new Pipeline(cfg, strategy, client, persistEmbeddings: false);
+        if (strategy.VerifyAnswers)
+            await pipeline.VerifyAnswerAsync("What is the return window?", "", "Returns: 30 days.", "", "30 days.", new());
+        await pipeline.AnswerAsync(PreflightItem);
     }
 
     public static (string Timestamp, string Stamp) UtcStamp()
@@ -532,6 +535,7 @@ public static class Runner
             modelStrategy.ExactCache = false;
             modelStrategy.SemanticCache = false;
             modelStrategy.Escalation = false;
+            modelStrategy.VerifyAnswers = false;
             await PreflightAsync(cfg, modelStrategy);
             Say($"\n▶ {key} ({model.Deployment})");
 
@@ -714,6 +718,14 @@ public static class Runner
                     var result = await client.EmbedAsync(key, new[] { "ping" });
                     latency = result.LatencyMs;
                     detail = $"{(result.Vectors.Count > 0 ? result.Vectors[0].Length : 0)} dims";
+                }
+                else if (model.Type == "decision")
+                {
+                    var result = await client.DecideAsync(new JsonObject { ["text"] = "ping" },
+                        new JsonObject { ["ok"] = new JsonObject { ["type"] = "noul", ["instructions"] = "Is the text ping?" } },
+                        purpose: "doctor");
+                    latency = result.LatencyMs;
+                    detail = $"Decision API reachable; probability={result.Probability("ok"):F3}";
                 }
                 else
                 {

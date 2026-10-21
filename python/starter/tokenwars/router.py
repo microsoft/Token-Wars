@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import re
+import sys
 
-from .prompts import CLASSIFIER_SYSTEM_PROMPT
+from .prompts import CLASSIFIER_SYSTEM_PROMPT, DECISION_ROUTE_QUESTION, DECISION_TIER_CRITERIA
 
 # Challenge 2.2: after `compare`, you may change which model serves each tier.
 TIER_MODELS = {"SIMPLE": "economy", "STANDARD": "balanced", "COMPLEX": "premium"}
@@ -28,7 +29,17 @@ class Router:
             return self.route_rules(question, normalized, order_specific)
         if self.strategy.routing == "classifier":
             return self.route_classifier(question, calls)
+        if self.strategy.routing == "decision":
+            return self.route_decision(question, calls)
         return self.strategy.default_model
+
+    # TODO 3.2b (optional) - call client.decide with state={"question": question},
+    # questions={"tier": DECISION_ROUTE_QUESTION}. Append the result BEFORE reading its choice.
+    # Read result.choice("tier", DECISION_TIER_CRITERIA); below decision_threshold use premium,
+    # otherwise TIER_MODELS[label]. Record result.outcome and warn on a low-probability fallback.
+    # Enable with routing="decision"; do not use workload labels or ground truth.
+    def route_decision(self, question: str, calls: list) -> str:
+        raise NotImplementedError("TODO 3.2b not implemented yet - see tokenwars/router.py")
 
     # TODO 3.1 – Rules router (Challenge 3 "Route & Rule")
     # Most questions do not need the premium model. Route deterministically, in this order:

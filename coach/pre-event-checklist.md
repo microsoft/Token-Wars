@@ -55,15 +55,21 @@ pins azurerm `~> 5.8`).
 Default region `swedencentral`, GlobalStandard. Defaults per team (TPM in thousands): gpt-5.6-sol **800**, gpt-5.6-terra
 **800**, gpt-5.6-luna **800**, gpt-5.5 **800** (separate `judge` deployment), text-embedding-3-small **150**,
 Llama-3.3-70B-Instruct **100**.
+Microsoft-Decision-1 (publisher `Microsoft`, version `1`, GlobalStandard) is also **required**, with capacity **1**
+by default. Its quota-unit conversion is model-specific: check it separately rather than assuming the chat-model
+TPM conversion. Terraform always deploys it, even if teams skip optional TODOs 3.2b and 3.3b.
 
 ```bash
 az cognitiveservices model list --location swedencentral \
-  --query "[?contains(model.name,'gpt-5.6-') || model.name=='gpt-5.5' || contains(model.name,'text-embedding-3-small') || contains(model.name,'Llama-3.3')].{name:model.name, version:model.version, format:model.format}" -o table
+  --query "[?contains(model.name,'gpt-5.6-') || model.name=='gpt-5.5' || model.name=='Microsoft-Decision-1' || contains(model.name,'text-embedding-3-small') || contains(model.name,'Llama-3.3')].{name:model.name, version:model.version, format:model.format}" -o table
 az cognitiveservices usage list --location swedencentral -o table      # current usage vs limit per model + SKU
 ```
 
 - [ ] gpt-5.6-sol (2026-07-09), gpt-5.6-terra and gpt-5.6-luna (2026-07-09) are listed and have enough GlobalStandard quota.
 - [ ] gpt-5.5 (2026-04-24) is available with 800K TPM quota for `judge`; it does not share Terra's model allocation.
+- [ ] Microsoft-Decision-1 version 1 is available with quota. If not, resolve access/region before setup; do not remove its required deployment.
+- [ ] Confirm the Decision token price for the event's SKU/region, freeze it for all teams, and run `doctor` through APIM.
+      The supplied USD 0.042/1M-token retail snapshot is marked unverified until this check.
 - [ ] Coaches use the same pinned GPT-5.5 judge, prompt and settings for every team, check a human-graded sample,
       and repeat baselines/comparisons after migration. Do not mix scores produced by different judges.
 - [ ] text-embedding-3-small has quota (if GlobalStandard is not offered: `embedding_model = { sku = "Standard" }`).

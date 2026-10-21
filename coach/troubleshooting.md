@@ -3,7 +3,24 @@
 Start every investigation with `python -m tokenwars doctor` / `dotnet run -- doctor`: it prints ROOT, the configured
 models, which keys are present, and makes a test call to every chat model with a 64-token output budget.
 This leaves room for the short "OK" reply to finish; a one-token cap can cause an output-limit HTTP 400.
-Embedding probes and normal run output limits are unchanged.
+Embedding probes and normal run output limits are unchanged. Decision models use a typed `noul` probe instead of chat.
+
+## Microsoft-Decision-1 (required deployment, optional exercises)
+
+| Symptom | Action |
+|---|---|
+| `ContainsReservedWord` when creating deployment `Microsoft-Decision-1` | Use the neutral deployment resource name `decision` while keeping `model.name = "Microsoft-Decision-1"`. Re-plan and apply the updated Terraform; it regenerates the registry and APIM's deployment-name check. Shared team gateways must also be reapplied after the coach stack. Do not lowercase the catalog model name to work around a resource-name restriction. |
+| `DeploymentModelNotSupported` with `Name:microsoft-decision-1` | Use the exact catalog name `Microsoft-Decision-1`, format `Microsoft`, version `1` in `decision_model`, including any tfvars override. The lowercase pricing key is not the catalog identifier. See the [official deployment example](https://learn.microsoft.com/azure/foundry/foundry-models/how-to/use-foundry-models-microsoft-decision). If the correctly cased model still fails, list models for the account's region and verify the selected SKU is available before changing region or SKU. |
+| Deployment unavailable or quota exceeded | Check Microsoft-Decision-1 version 1, publisher Microsoft, region and GlobalStandard quota. Capacity defaults to 1; its unit conversion is model-specific. Resolve this before setup: deployment is required, even with both exercises off. |
+| Decision call returns 404 | Reapply the main and, if used, shared stack. APIM must expose `/openai/v1/decisions` and rewrite to the primary Foundry `/providers/microsoft/v1/systemone` endpoint. Changing `base_url` alone is not enough. |
+| 400 Invalid Decision deployment | Regenerate the registry. The request's `model` must be the configured deployment name, not an answer tier. |
+| 422 on Decision | Check the native `state` and typed `questions` contract (`choice` for routing, `noul` for verification). Do not send chat `messages`, temperature or chat token limits. |
+| 401/403 on Decision | Check APIM subscription credentials and its managed identity's Cognitive Services User role on the primary resource. Allow RBAC propagation; do not bypass APIM. |
+| 429 on Decision | It has a separate request budget (`decision_requests_per_minute`, default 600), not the chat LLM token budget. Implement 3.4 retries; also check backend model quota. |
+| TODO 3.2b / 3.3b not implemented | Expected starter preflight: implement the optional method or disable its flag. Verification additionally requires completed TODO 3.3 and `escalation=true`. |
+| No Decision costs in `compare` | Expected: compare disables routing and verification and skips non-chat models. Compare full `run` executions instead. |
+| Invalid Decision answer / probability | Inspect the recorded `decision_calls` and response schema. Do not silently accept, fabricate confidence or retry through a chat model. Known usage is charged even when parsing fails. |
+| Missing Decision usage or price | The run cannot be scored reliably. Fix the response mapping or ask the coach to confirm pricing; do not count it as free. |
 
 ## Deployment (Terraform)
 

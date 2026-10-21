@@ -34,6 +34,9 @@ leaderboard_key = "tokenwars"
 # balanced_model  = { capacity = 800 }
 # economy_model   = { capacity = 800 }
 # judge_model     = { capacity = 800 }   # separate GPT-5.5 deployment; not the balanced answer model
+# decision_model  = { capacity = 50 }     # REQUIRED Microsoft-Decision-1 version 1; check its own quota units
+# Decision deployment is unconditional, even when optional TODOs 3.2b/3.3b are disabled.
+# It uses the native Decision API through APIM, not chat/completions, and stays on the primary resource.
 # embedding_model = { sku = "Standard", capacity = 150 }   # if GlobalStandard is not offered for embeddings
 # open_model      = { name = "Llama-3.3-70B-Instruct", format = "Meta", capacity = 100 }
 # deploy_open_model = true
@@ -55,6 +58,7 @@ apim_sku    = "StandardV2_1" # v2 tiers support llm-token-limit + llm-emit-token
 # apim_policy_file               = "policies/ai-gateway-multiprovider.xml"  # Challenge 3.6 stretch (needs deploy_fireworks = true)
 # apim_consumers                 = ["checkout-squad", "support-squad"]
 # tokens_per_minute_per_consumer = 20000
+# decision_requests_per_minute = 600    # separate request budget; chat LLM token policies do not support systemone
 
 # --- Challenge 2: self-hosted small model (Ollama on Container Apps, CPU) -----
 deploy_selfhosted_model = false

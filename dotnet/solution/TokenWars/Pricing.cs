@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 
 namespace TokenWars;
 
-public sealed record PriceEntry(double InputPer1M, double CachedInputPer1M, double OutputPer1M);
+public sealed record PriceEntry(double InputPer1M, double CachedInputPer1M, double OutputPer1M, bool HasTokenRates = true);
 
 /// <summary>shared/config/pricing.json – list prices per 1M tokens (SPEC 2.3, 4.7).</summary>
 public sealed class PricingTable
@@ -25,6 +25,7 @@ public sealed class PricingTable
     public static PricingTable BuiltIn() => new("USD", new Dictionary<string, PriceEntry>(StringComparer.Ordinal)
     {
         ["gpt-5.5"] = new PriceEntry(5.00, 0.50, 30.00),
+        ["microsoft-decision-1"] = new PriceEntry(0.042, 0.042, 0.042),
         ["gpt-5.6-sol"] = new PriceEntry(4.00, 0.50, 20.00),
         ["gpt-5.6-terra"] = new PriceEntry(2.00, 0.20, 12.00),
         ["gpt-5.6-luna"] = new PriceEntry(0.20, 0.02, 1.20),
@@ -52,13 +53,22 @@ public sealed class PricingTable
                 prices[key] = new PriceEntry(
                     input,
                     JsonUtil.Dbl(p["cached_input_per_1m"]) ?? input,
-                    JsonUtil.Dbl(p["output_per_1m"]) ?? 0);
+                    JsonUtil.Dbl(p["output_per_1m"]) ?? 0,
+                    p["input_per_1m"]?.GetValueKind() == System.Text.Json.JsonValueKind.Number
+                    && p["output_per_1m"]?.GetValueKind() == System.Text.Json.JsonValueKind.Number);
             }
         }
         return new PricingTable(JsonUtil.Str(doc?["currency"]) ?? "USD", prices);
     }
 
     public bool Has(string pricingKey) => _prices.ContainsKey(pricingKey);
+
+    public void RequireDecisionPrice(string key)
+    {
+        if (!_prices.TryGetValue(key, out var p) || !p.HasTokenRates || !double.IsFinite(p.InputPer1M)
+            || !double.IsFinite(p.OutputPer1M) || p.InputPer1M <= 0 || p.OutputPer1M < 0)
+            throw new ConfigException($"Decision requires a valid non-free input price and output price: {key}.");
+    }
 
     /// <summary>((prompt - cached) * input + cached * cached_input + completion * output) / 1M</summary>
     public double Cost(string pricingKey, int promptTokens, int cachedTokens, int completionTokens)
@@ -79,6 +89,7 @@ public sealed class PricingTable
 /// <summary>One billed LLM call (chat or embeddings).</summary>
 public sealed class CallRecord
 {
+    public JsonObject? Decision { get; init; }
     public string ModelKey { get; init; } = "";
     public int PromptTokens { get; init; }
     public int CachedTokens { get; init; }

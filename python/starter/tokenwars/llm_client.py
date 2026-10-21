@@ -7,7 +7,7 @@ import random
 import sys
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import requests
@@ -53,6 +53,45 @@ class EmbeddingResult:
     latency_ms: int
 
 
+class DecisionUsageError(ConfigError):
+    """Stop a run rather than score a decision whose billed usage is unknown."""
+
+
+@dataclass
+class DecisionResult:
+    model_key: str
+    answers: Any
+    usage: Usage
+    latency_ms: int
+    purpose: str
+    outcome: dict[str, Any] = field(default_factory=dict)
+
+    def _answer(self, name: str, kind: str) -> dict[str, Any]:
+        answer = self.answers.get(name) if isinstance(self.answers, dict) else None
+        if not isinstance(answer, dict) or answer.get("type") != kind:
+            raise LlmError(f"Invalid Decision answer '{name}': expected {kind}.")
+        return answer
+
+    @staticmethod
+    def _probability(value: Any) -> float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+            raise LlmError("Decision probability must be a finite number between 0 and 1.")
+        return float(value)
+
+    def choice(self, name: str, options: dict[str, str]) -> tuple[str, float]:
+        answer = self._answer(name, "choice")
+        label, probabilities = answer.get("choice"), answer.get("probabilities")
+        if not isinstance(label, str) or label not in options or not isinstance(probabilities, dict):
+            raise LlmError("Decision returned an unknown choice or missing probabilities.")
+        if set(probabilities) != set(options):
+            raise LlmError("Decision probabilities must cover exactly the requested choices.")
+        parsed = {key: self._probability(value) for key, value in probabilities.items()}
+        return label, parsed[label]
+
+    def probability(self, name: str) -> float:
+        return self._probability(self._answer(name, "noul").get("noul"))
+
+
 class LlmClient:
     def __init__(self, config: AppConfig, use_gateway: bool = True, retry_on_throttle: bool = False,
                  mock: bool | None = None):
@@ -69,6 +108,8 @@ class LlmClient:
              purpose: str = "answer") -> ChatResult:
         """purpose: "answer" | "classifier" | "judge" | "doctor" (used by the mock and for warnings)."""
         model = self.config.model(model_key)
+        if model.type != "chat":
+            raise ConfigError(f'Model "{model_key}" is not a chat model.')
         body: dict[str, Any] = {"model": model.deployment, "messages": messages}
         if temperature is not None and model.supports_temperature:
             body["temperature"] = temperature
@@ -114,6 +155,46 @@ class LlmClient:
         except (KeyError, TypeError) as exc:
             raise LlmError(f"Unexpected embeddings response from {model_key}: {str(data)[:300]}") from exc
         return EmbeddingResult(model_key, vectors, _parse_usage(data), latency)
+
+    def validate_decision(self) -> ModelConfig:
+        model = self.config.model("decision")
+        if model.type != "decision" or not model.via_gateway:
+            raise ConfigError('Model "decision" must have type="decision" and via_gateway=true.')
+        prices = self.config.pricing.get("models", {}).get(model.pricing_key, {})
+        for key in ("input_per_1m", "output_per_1m"):
+            rate = prices.get(key)
+            if (isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate)
+                    or rate < 0 or (key == "input_per_1m" and rate == 0)):
+                raise ConfigError(f"Decision requires a valid non-free input price and output price: {model.pricing_key}.")
+        return model
+
+    def decide(self, state: dict[str, Any], questions: dict[str, Any],
+               purpose: str = "routing") -> DecisionResult:
+        model = self.validate_decision()
+        body = {"model": model.deployment, "state": state, "questions": questions}
+        started = time.perf_counter()
+        if self.mock:
+            answers = {}
+            for name, question in questions.items():
+                if question["type"] == "choice":
+                    options = list(question["criteria"])
+                    answers[name] = {"type": "choice", "choice": options[0],
+                                     "probabilities": {key: float(key == options[0]) for key in options}}
+                else:
+                    answers[name] = {"type": "noul", "noul": 1.0}
+            data = {"answers": answers,
+                    "usage": {"input_tokens": math.ceil(len(json.dumps(body)) / 4), "output_tokens": 0}}
+        else:
+            url, key = self._endpoint(model)
+            data = self._send(lambda: self._post(url + "decisions", key, body, model.extra_headers))
+        usage = data.get("usage") if isinstance(data, dict) else None
+        if not isinstance(usage, dict) or any(
+            type(usage.get(key)) is not int or usage[key] < 0 for key in ("input_tokens", "output_tokens")
+        ):
+            raise DecisionUsageError("Decision response has no valid input_tokens/output_tokens; run not scoreable.")
+        return DecisionResult(model.key, data.get("answers"),
+                              Usage(usage["input_tokens"], usage["output_tokens"]),
+                              int((time.perf_counter() - started) * 1000), purpose)
 
     # ------------------------------------------------------------------ HTTP
 

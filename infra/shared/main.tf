@@ -57,6 +57,10 @@ resource "terraform_data" "validate" {
 
   lifecycle {
     precondition {
+      condition     = contains(keys(local.coach.models), "decision")
+      error_message = "The coach stack must deploy Microsoft-Decision-1 first. Run terraform apply in infra/ before creating team gateways."
+    }
+    precondition {
       condition     = length(local.unsupported_extra_models) == 0
       error_message = "These models.json keys are not hosted by a backend the team APIMs know (primary Foundry, Ollama or a Fireworks deployment): ${join(", ", local.unsupported_extra_models)}. Deploy them on the coach's primary Foundry resource or remove them from ${var.coach_models_json}."
     }
@@ -71,28 +75,29 @@ module "team" {
   source   = "./modules/team"
   for_each = toset(var.teams)
 
-  team                       = each.key
-  location                   = coalesce(var.location, local.coach.location)
-  suffix                     = local.coach.suffix
-  tags                       = merge(local.coach.tags, var.tags, { workload = "token-wars-microhack", team = each.key, mode = "shared", coach = local.coach.coach_team, SecurityControl = "Ignore" })
-  apim_sku                   = coalesce(var.apim_sku, local.coach.apim_sku)
-  apim_publisher_email       = local.coach.apim_publisher_email
-  apim_consumers             = local.coach.apim_consumers
-  tokens_per_minute          = coalesce(var.tokens_per_minute_per_consumer, local.coach.tokens_per_minute)
-  pool_models                = local.coach.pool_models
-  judge_deployment           = local.coach.judge_deployment
-  primary                    = local.coach.primary
-  secondary                  = local.coach.secondary
-  fireworks                  = local.coach.fireworks
-  selfhosted                 = local.coach.selfhosted
-  log_analytics_workspace_id = local.coach.log_analytics_workspace_id
-  policy_file                = local.policy_paths[each.key]
-  judge_policy_file          = "${path.root}/policies/judge.xml"
-  models                     = local.team_models
-  judge_model                = local.coach.models.judge
-  leaderboard_url            = local.coach.leaderboard_url
-  leaderboard_key            = local.coach.leaderboard_key
-  output_dir                 = "${local.output_dir}/${each.key}"
+  team                         = each.key
+  location                     = coalesce(var.location, local.coach.location)
+  suffix                       = local.coach.suffix
+  tags                         = merge(local.coach.tags, var.tags, { workload = "token-wars-microhack", team = each.key, mode = "shared", coach = local.coach.coach_team, SecurityControl = "Ignore" })
+  apim_sku                     = coalesce(var.apim_sku, local.coach.apim_sku)
+  apim_publisher_email         = local.coach.apim_publisher_email
+  apim_consumers               = local.coach.apim_consumers
+  tokens_per_minute            = coalesce(var.tokens_per_minute_per_consumer, local.coach.tokens_per_minute)
+  decision_requests_per_minute = local.coach.decision_requests_per_minute
+  pool_models                  = local.coach.pool_models
+  judge_deployment             = local.coach.judge_deployment
+  primary                      = local.coach.primary
+  secondary                    = local.coach.secondary
+  fireworks                    = local.coach.fireworks
+  selfhosted                   = local.coach.selfhosted
+  log_analytics_workspace_id   = local.coach.log_analytics_workspace_id
+  policy_file                  = local.policy_paths[each.key]
+  judge_policy_file            = "${path.root}/policies/judge.xml"
+  models                       = local.team_models
+  judge_model                  = local.coach.models.judge
+  leaderboard_url              = local.coach.leaderboard_url
+  leaderboard_key              = local.coach.leaderboard_key
+  output_dir                   = "${local.output_dir}/${each.key}"
 
   depends_on = [terraform_data.validate]
 }

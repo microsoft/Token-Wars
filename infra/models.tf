@@ -8,6 +8,7 @@ locals {
     premium   = var.premium_model.name
     balanced  = var.balanced_model.name
     economy   = var.economy_model.name
+    decision  = "decision" # Keep the reserved publisher name in model.name, not the deployment name.
     judge     = "judge"
     embedding = var.embedding_model.name
     open      = var.open_model.name
@@ -66,6 +67,24 @@ resource "azurerm_cognitive_deployment" "economy" {
   depends_on = [azurerm_cognitive_deployment.balanced]
 }
 
+resource "azurerm_cognitive_deployment" "decision" {
+  name                 = local.deployment_names.decision
+  cognitive_account_id = azurerm_cognitive_account.ai.id
+
+  model {
+    format  = var.decision_model.format
+    name    = var.decision_model.name
+    version = var.decision_model.version
+  }
+
+  sku {
+    name     = var.decision_model.sku
+    capacity = var.decision_model.capacity
+  }
+
+  depends_on = [azurerm_cognitive_deployment.economy]
+}
+
 resource "azurerm_cognitive_deployment" "judge" {
   name                 = local.deployment_names.judge
   cognitive_account_id = azurerm_cognitive_account.ai.id
@@ -81,7 +100,7 @@ resource "azurerm_cognitive_deployment" "judge" {
     capacity = var.judge_model.capacity
   }
 
-  depends_on = [azurerm_cognitive_deployment.economy]
+  depends_on = [azurerm_cognitive_deployment.decision]
 }
 
 resource "azurerm_cognitive_deployment" "embedding" {

@@ -114,12 +114,19 @@ With escalation on, keys outside the explicit `economy → balanced → premium`
 | 2.3 | Prompt adaptation for non-OpenAI models (`open`, `selfhosted`, `custom`, `fw_*`) | `tokenwars/prompts.py` (`model_specific_instructions`) | – |
 | 3.1 | Rules router | `tokenwars/router.py` (`route_rules`) | `routing: "rules"` |
 | 3.2 | Classifier router (economy) | `tokenwars/router.py` (`route_classifier`) | `routing: "classifier"` |
+| 3.2b | Optional Decision routing | `tokenwars/router.py` (`route_decision`) | `routing: "decision"` |
 | 3.3 | Escalation on `ESCALATE` (unmapped keys such as `fw_*` / `custom` → `premium`) | `tokenwars/pipeline.py` | `escalation` |
+| 3.3b | Optional pre-escalation verification | `tokenwars/pipeline.py` (`verify_answer`) | `verify_answers`, requires `escalation` |
 | 3.4 | Throttle-aware retry | `tokenwars/llm_client.py` (`_send_with_retry`) | `retry_on_throttle` |
 | 3.5 | Chat budgets, provider telemetry enrichment, pool/retry resilience | `infra/policies/ai-gateway-solution.xml` | gateway already required |
 | stretch | Embedding retrieval | `tokenwars/context.py` (`embedding_retrieval`) | `retrieval: "embedding"` |
 
 ## Notes
+
+- Decision-1 is always deployed, but both optional exercises are off in the default strategy. The shared
+  `decision_threshold` is `0.8`; routing below it uses premium, verification below it escalates. Premium is not
+  verified. Mock decisions select SIMPLE and accept answers; they demonstrate wiring, not quality.
+  See the [Decision guide](../../README.md#optional-decision-exercises-required-deployment).
 
 - In mock mode the classifier always answers `SIMPLE`, so every uncached item goes to `economy`, and no escalations
   happen. Use a real run to see the full routing mix.

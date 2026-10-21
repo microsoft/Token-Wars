@@ -71,6 +71,71 @@ must not be rewritten.
 Coach automation should also use `--premium-key` / `--balanced-key` for the break-even calculator and read its
 `breakeven_vs_balanced_requests_per_month` JSON field.
 
+## Optional Decision exercises (required deployment)
+
+Terraform **always deploys Microsoft-Decision-1** (publisher `Microsoft`, version `1`, GlobalStandard, capacity `1`)
+on the primary Foundry resource. Check its own availability/quota units before setup. There is no
+`deploy_decision` switch: only the exercises are optional. Existing teams must run `terraform apply` to add the
+deployment, gateway operation and regenerated registry; shared teams receive updated files from their coach.
+
+| Exercise | Enable after implementing the starter TODO | Behavior |
+|---|---|---|
+| [3.2b: Routing with Decision](docs/index.html#step-3.2b) | `"routing": "decision"` | A typed `choice` selects SIMPLE/economy, STANDARD/balanced or COMPLEX/premium. Below the threshold, use premium and record the fallback. |
+| [3.3b: Verify before escalating](docs/index.html#step-3.3b) | `"verify_answers": true`, `"escalation": true` | A `noul` decision checks each non-premium answer against its actual context. Rejected answers enter the existing escalation chain. |
+
+Both are off by default, including in the solution strategies. `decision_threshold` defaults to `0.8` for the
+selected routing probability and the verification probability; this is a starting point, not a calibrated accuracy
+guarantee. Tune it on separate representative examples. Cache hits make no Decision calls. Empty answers and explicit
+`ESCALATE` go directly to the next tier without verification; premium ends the chain. Verification never uses the
+workload's reference answer, difficulty, category or must-include facts, and does not replace the independent judge.
+
+The model registry key is `decision`, with `type: "decision"` and `via_gateway: true`. It is not a chat model:
+`default_model`, answer tiers and `compare` must not use it for generation. The clients send `state` and `questions`
+to APIM `/openai/v1/decisions`; all three policies forward to the primary resource's native
+`/providers/microsoft/v1/systemone` endpoint using managed identity. The operation has its own per-subscription
+request limit (`decision_requests_per_minute`, default 600), not the chat-only LLM token limiter. It never fails
+over to Fireworks or the regional chat pool.
+
+Decision input/output usage is included in `calls_by_model.decision` and the team's cost, including verification
+calls that reject an answer. Each item's `decision_calls` records probabilities and outcomes separately from
+`model_path` (which still counts answer-model escalation hops only). Invalid decisions fail visibly; missing usage
+aborts the run rather than producing an underpriced submission. A missing/invalid price fails before spending.
+The USD 0.042/1M-token retail snapshot in `pricing.json` has no cache discount and remains `verified: false` until
+the coach confirms the event's deployment/SKU price.
+
+Compare **full `run` executions**, keeping prompts, retrieval, caches and the judge fixed: rules vs classifier vs
+decision, then verification off vs on. `compare` intentionally disables routing and verification. Report cost per
+success, pass rate (at least 85%), p50/p95 latency and escalation/fallback rates; do not claim savings from mock data.
+
+Contract references: [Foundry Decision API](https://learn.microsoft.com/azure/foundry/foundry-models/how-to/use-foundry-models-microsoft-decision)
+and [TypeSafe System One response schema](https://learn.microsoft.com/azure/databricks/machine-learning/model-serving/query-systemone-models#response-format).
+
+### Offline Decision regression tests
+
+Install the existing Python requirements, build both .NET projects, then run from the repository root:
+
+```powershell
+dotnet build .\dotnet\starter\TokenWars\TokenWars.csproj
+dotnet build .\dotnet\solution\TokenWars\TokenWars.csproj
+$env:TOKENWARS_TEST_DOTNET = (Get-Command dotnet).Source
+python -m unittest discover -s tests -p test_decision.py -v
+```
+
+The tests use temporary configuration and a loopback HTTP server, never Azure or the repository's `.env`.
+Without `TOKENWARS_TEST_DOTNET`, .NET cases are skipped. Terraform is needed for policy-rendering checks.
+The guide tests also check that the copyable Decision solutions match the implementations.
+
+With Terraform 1.7+ (required for mocked providers), initialize providers with
+`terraform -chdir=infra init -backend=false`, then run this from the repository root:
+
+```powershell
+terraform -chdir=infra test -test-directory=contract-tests
+```
+
+The mocked-provider plan checks that Decision remains deployed with optional providers disabled and
+that the default registry and APIM operation use its native contract. It does not deploy resources.
+These tests live outside the module's default test directory to preserve Terraform 1.6 deployment support.
+
 ## Repository map
 
 ```
@@ -267,7 +332,7 @@ run results. Re-run `doctor` and the baseline after applying, since model qualit
 ### Required gateway and provider telemetry
 
 `use_gateway` defaults to `true` in both tracks and cannot be disabled for real inference. All non-judge
-models, including Fireworks, Ollama, embeddings and custom models, require `via_gateway: true`, a gateway
+models, including Fireworks, Ollama, embeddings, Decision and custom models, require `via_gateway: true`, a gateway
 URL and an APIM subscription key. Missing configuration fails explicitly; there is no direct-call fallback.
 Offline `--mock` still needs no gateway or credentials. The independent configured judge is the only direct
 exception and must have `via_gateway: false`; a missing judge does not fall back to an answer model.
@@ -284,7 +349,8 @@ telemetry with API/model dimensions, and adds Azure pool/retry resilience. TODO 
 The native LLM policies apply to chat completions; embeddings also pass through APIM and contribute to the
 outbound metric, but not to the chat-only token limiter.
 Only the three answer-tier deployments use the Azure regional pool; embeddings, open and custom models
-stay on the primary backend because the secondary resource does not deploy them.
+stay on the primary backend because the secondary resource does not deploy them. Decision also remains
+primary-only on its dedicated native backend and never enters chat/Fireworks failover.
 
 For the dashboard, use the outbound **Provider Tokens** metric, attributed to the final serving provider:
 `team` is the APIM subscription display name, so each team should use its own subscription key.
@@ -298,7 +364,7 @@ customMetrics
 | order by timestamp asc
 ```
 
-Provider values are `azure-openai`, `fireworks` and `selfhosted`. Native LLM token metrics describe the
+Provider values are `azure-openai`, `fireworks`, `selfhosted` and `microsoft-decision`. Native LLM token metrics describe the
 requested route, while the outbound counter reflects a rewritten failover model/provider. **Do not sum
 both metric families together.** Failed attempts without reported usage cannot be counted; this dashboard
 is not a billing ledger. The app still prices failover calls using the requested model's `pricing_key`.

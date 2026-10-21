@@ -119,12 +119,20 @@ queued requests or resource pressure before choosing a smaller model or changing
 | 2.3 | BYOM | Model-specific prompt adaptation (`open`, `selfhosted`, `custom`, `fw`, `fw_*`) | `TokenWars/Prompts.cs` (`ModelSpecificInstructions`) |
 | 3.1 | Route & Rule | Rules router | `TokenWars/Router.cs` (`RouteRules`) |
 | 3.2 | Route & Rule | Classifier router (economy) | `TokenWars/Router.cs` (`RouteClassifierAsync`) |
+| 3.2b | Route & Rule (optional) | Typed Decision routing | `TokenWars/Router.cs` (`RouteDecisionAsync`) |
 | 3.3 | Route & Rule | Escalation on `ESCALATE` | `TokenWars/Pipeline.cs` (`AnswerCoreAsync`, step 8) |
+| 3.3b | Route & Rule (optional) | Verify answers before escalating | `TokenWars/Pipeline.cs` (`VerifyAnswerAsync`) |
 | 3.4 | Route & Rule | Throttle-aware retry (429 + Retry-After) | `TokenWars/LlmClient.cs` (`SendWithRetryAsync`) |
 | 3.5 | Route & Rule | Chat budgets, provider telemetry enrichment, pool/retry resilience | `infra/policies/ai-gateway-solution.xml` |
 | stretch | Token Diet | Embedding retrieval (`"retrieval": "embedding"`) | `TokenWars/ContextBuilder.cs` (`EmbeddingRetrievalAsync`) |
 
 ## Files
+
+Decision-1 is always deployed, but both optional exercises are off in the default strategies. Enable
+`routing: "decision"` and/or `verify_answers: true` (requires `escalation: true`).
+The shared `decision_threshold` defaults to `0.8`: routing below it uses premium, verification below it escalates.
+Premium is not verified. Mock decisions select SIMPLE and accept answers; they demonstrate wiring, not quality.
+See the [Decision guide](../../README.md#optional-decision-exercises-required-deployment).
 
 ```
 TokenWars/TokenWars.csproj   net8.0, RollForward=Major, no packages

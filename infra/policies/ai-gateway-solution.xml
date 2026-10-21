@@ -12,6 +12,7 @@
         return body?[&quot;model&quot;]?.ToString() ?? &quot;unknown&quot;;
     }" />
     <set-variable name="tw-provider" value="@{
+        if (context.Operation.Id == &quot;decisions&quot;) { return &quot;microsoft-decision&quot;; }
         var model = (string)context.Variables[&quot;tw-model&quot;];%{ for model in fireworks_models }
         if (model == ${replace(jsonencode(model), "\"", "&quot;")}) { return &quot;fireworks&quot;; }%{ endfor }%{ if selfhosted_enabled }
         if (model == ${replace(jsonencode(selfhosted_model), "\"", "&quot;")}) { return &quot;selfhosted&quot;; }%{ endif }
@@ -64,6 +65,24 @@
         </llm-emit-token-metric>
       </when>
     </choose>
+    <choose>
+      <when condition="@(context.Operation.Id == &quot;decisions&quot;)">
+        <choose>
+          <when condition="@((string)context.Variables[&quot;tw-model&quot;] != ${replace(jsonencode(decision_model), "\"", "&quot;")})">
+            <return-response>
+              <set-status code="400" reason="Invalid Decision deployment" />
+              <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+              <set-body>{"error":"The decisions operation only accepts the configured Decision deployment."}</set-body>
+            </return-response>
+          </when>
+        </choose>
+        <rate-limit-by-key calls="${decision_requests_per_minute}" renewal-period="60"
+                           counter-key="@(&quot;decision:&quot; + context.Subscription.Id)" />
+        <set-backend-service backend-id="${decision_backend_id}" />
+        <rewrite-uri template="/systemone" copy-unmatched-params="false" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+      </when>
+    </choose>
   </inbound>
   <backend>
     <!-- SOLUTION 3.5c: Azure retries reselect from its pool; other providers retry their own backend. -->
@@ -88,6 +107,12 @@
         var contentType = context.Response.Headers.GetValueOrDefault(&quot;Content-Type&quot;, &quot;&quot;);
         if (!contentType.Contains(&quot;json&quot;)) { return -1d; }
         var body = context.Response.Body?.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+        if (context.Operation.Id == &quot;decisions&quot;) {
+            var input = (double?)body?[&quot;usage&quot;]?[&quot;input_tokens&quot;];
+            var output = (double?)body?[&quot;usage&quot;]?[&quot;output_tokens&quot;];
+            return input.HasValue &amp;&amp; output.HasValue &amp;&amp; input.Value &gt;= 0 &amp;&amp; output.Value &gt;= 0
+                ? input.Value + output.Value : -1d;
+        }
         return (double)((double?)body?[&quot;usage&quot;]?[&quot;total_tokens&quot;] ?? -1d);
     }" />
     <choose>

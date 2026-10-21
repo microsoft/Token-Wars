@@ -134,7 +134,45 @@ variable "economy_model" {
   default = {}
 }
 
-# Verify availability first: az cognitiveservices model list --location <region> --query "[?model.name=='gpt-5.5']" -o table
+# The catalog model name is case-sensitive; the lowercase pricing key is not a model identifier.
+# Verify availability: az cognitiveservices model list --location <region> --query "[?model.name=='Microsoft-Decision-1']" -o json
+variable "decision_model" {
+  description = "Required Microsoft-Decision-1 catalog model, deployed under the resource name 'decision' to avoid reserved words. The routing/verification exercises are optional, not this deployment. Check model-specific quota units before raising capacity."
+  type = object({
+    name        = optional(string, "Microsoft-Decision-1")
+    version     = optional(string, "1")
+    format      = optional(string, "Microsoft")
+    sku         = optional(string, "DataZoneStandard")
+    capacity    = optional(number, 50)
+    pricing_key = optional(string, "microsoft-decision-1")
+  })
+  default = {}
+
+  validation {
+    condition     = var.decision_model.name == "Microsoft-Decision-1" && var.decision_model.format == "Microsoft"
+    error_message = "Decision requires the exact catalog model name 'Microsoft-Decision-1' and format 'Microsoft'. The lowercase 'microsoft-decision-1' is a pricing key, not the catalog model name."
+  }
+  validation {
+    condition     = var.decision_model.capacity >= 1 && floor(var.decision_model.capacity) == var.decision_model.capacity
+    error_message = "decision_model.capacity must be a positive integer."
+  }
+  validation {
+    condition     = contains(["GlobalStandard", "DataZoneStandard"], var.decision_model.sku)
+    error_message = "Decision uses pay-per-token GlobalStandard or DataZoneStandard, never PTU."
+  }
+}
+
+variable "decision_requests_per_minute" {
+  description = "Separate per-subscription request limit for the Decision API; chat-only LLM token policies do not apply."
+  type        = number
+  default     = 50
+
+  validation {
+    condition     = var.decision_requests_per_minute >= 1 && floor(var.decision_requests_per_minute) == var.decision_requests_per_minute
+    error_message = "decision_requests_per_minute must be a positive integer."
+  }
+}
+
 variable "judge_model" {
   description = "Independent GPT-5.5 evaluator, deployed as 'judge' with its own throughput allocation. Bypasses APIM; evaluation cost is excluded from the team score."
   type = object({

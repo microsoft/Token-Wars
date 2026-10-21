@@ -166,6 +166,17 @@ Never let a team start the Fireworks opt-in or deployment during Challenge 2: up
   Remind: routing on `category`/`difficulty` from the workload = disqualification.
 - **3.3 Escalation**: cheap model answers or says `ESCALATE` → next tier. Measure escalation rate; too many
   escalations = paying twice.
+- **3.2b Routing with Decision (optional):** the required Microsoft-Decision-1 deployment returns typed choices
+  and probabilities. Use `routing: "decision"`; below `decision_threshold` (initially 0.8), route to premium.
+  Compare full runs against rules and the economy classifier; fewer output tokens do not guarantee lower cost per success.
+- **3.3b Verify before escalating (optional, requires 3.3):** set `verify_answers: true`. Check each non-premium
+  answer against exactly its supplied KB/order context. Rejection becomes `ESCALATE`; the existing chain retries
+  with a stronger model and verifies again. Explicit `ESCALATE` and empty answers skip the verifier; premium stops
+  the chain. Rejected answers are not cached. The verifier has no access to judge-only workload facts.
+  Both features are off by default, including in the solutions. Mock routing always picks SIMPLE and verification
+  accepts, so use the offline regression tests for rejection/error cases and real judged runs for quality.
+  Decision calls are team costs, not judge costs; inspect `decision_calls` and `calls_by_model.decision`.
+  Calibrate the threshold on separate representative examples; probability is not an answer-quality guarantee.
 - **3.4 Retry**: honour `retry-after-ms` / `retry-after`, exponential backoff + jitter. Needed as soon as APIM
   token limits (429) are on.
 - **3.5 AI gateway** (`infra/policies/ai-gateway-starter.xml`): `llm-token-limit` per subscription (two consumers:
@@ -182,6 +193,11 @@ Never let a team start the Fireworks opt-in or deployment during Challenge 2: up
   / `APIM_KEY_SUPPORT_SQUAD` for the per-consumer test. Regional failover (3.5c) only works if your coach stack has
   `deploy_secondary_region = true`; show App Insights (`appi-tws-<team>-…`) on screen — they have no portal access.
   For 3.6, don't lower shared capacities to provoke 429s (it hits every team): demo it yourself.
+
+Decision uses `/openai/v1/decisions` on every team gateway, rewritten to the native primary Foundry
+`/providers/microsoft/v1/systemone` endpoint. All policy variants must preserve this route, its managed identity,
+its separate request limit and `microsoft-decision` usage metrics. Chat token policies and chat/Fireworks failover
+do not apply. Reapply the coach stack before distributing updated shared-team configuration.
 
 ### Challenge 3.6 — "Multi-Provider Failover" (stretch)
 - Adds **failover only**; provider routing and provider telemetry already work in every policy.

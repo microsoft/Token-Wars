@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json.Nodes;
 
 namespace TokenWars;
 
@@ -43,7 +44,17 @@ public sealed class Router
     {
         if (_strategy.Routing == "rules") return RouteRules(question, normalized, orderSpecific);
         if (_strategy.Routing == "classifier") return await RouteClassifierAsync(question, calls, ct);
+        if (_strategy.Routing == "decision") return await RouteDecisionAsync(question, calls, ct);
         return _strategy.DefaultModel;
+    }
+
+    // TODO 3.2b (optional) - DecideAsync with state={question}, questions={tier: DecisionQuestions.Route()}.
+    // Add result.Call BEFORE result.Choice("tier", DecisionQuestions.TierCriteria).
+    // Below DecisionThreshold use premium; otherwise TierModels[label]. RecordOutcome and warn on fallback.
+    // Enable routing="decision"; never use workload labels or ground truth.
+    public Task<string> RouteDecisionAsync(string question, List<CallRecord> calls, CancellationToken ct = default)
+    {
+        throw new NotImplementedException("TODO 3.2b not implemented yet - see Router.cs");
     }
 
     // TODO 3.1 – Rules router (Challenge 3 "Route & Rule")

@@ -39,6 +39,14 @@
 
 ## Prerequisites (coach)
 
+Microsoft-Decision-1 is a **required deployment in the coach stack**, even when optional participant TODOs 3.2b
+(routing) and 3.3b (verification) are disabled. Reapply `infra/` before updating team gateways. Each gateway exposes
+`POST /openai/v1/decisions`, rewrites it to the native primary Foundry `/providers/microsoft/v1/systemone` API and
+uses managed identity. The registry retains `type: "decision"`; the model cannot generate answers or use chat
+failover. `decision_requests_per_minute` is a separate per-team-subscription request limit inherited from the
+coach stack, not the chat token budget. `Provider Tokens` includes native Decision input + output tokens under
+provider `microsoft-decision`. No Foundry keys are distributed.
+
 * The coach stack in `infra/` deployed in the coach subscription with this version of the kit
   (`terraform apply` once more if you deployed earlier: it adds the sensitive `shared_mode_config` output).
   Enable everything teams need **before** creating team gateways: `deploy_fireworks`, `deploy_selfhosted_model`,
