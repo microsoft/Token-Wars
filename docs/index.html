@@ -324,6 +324,8 @@ details.faq[open]>summary{border-block-end:1px solid var(--line);color:var(--cya
 .arch .n.j rect{stroke:#ffb547}
 .arch .n.l rect{stroke:#ff4fb8}
 .arch .ln{stroke:#7df9ff;stroke-width:2;fill:none}
+.arch .ln.decision{stroke:#ff4fb8;stroke-dasharray:6 5}
+.arch .n.optional rect{stroke-dasharray:6 4}
 .arch .lbl{fill:#a9b1d6;font:italic 12px system-ui,"Segoe UI",sans-serif}
 .arch .todo{fill:#c6ff4a;font:700 11px ui-monospace,Consolas,monospace;text-anchor:middle}
 .promptbar .t{font:600 13px system-ui,"Segoe UI",sans-serif;fill:#0b0d1a}
@@ -423,9 +425,9 @@ tr.grp th{background:rgba(125,249,255,.06);color:var(--cyan);font:700 .74rem var
 <h3>How it all fits together</h3>
 <p>Every workload question goes through the same answer pipeline, and each TODO lights up one block. Make each block cheaper without letting the judge's pass rate drop below 85%.</p>
 <figure class="figure arch-figure">
-<svg class="arch" viewBox="0 0 1100 680" role="img" aria-labelledby="arch-t arch-d" xmlns="http://www.w3.org/2000/svg">
+<svg class="arch" viewBox="0 0 1100 1088" role="img" aria-labelledby="arch-t arch-d" xmlns="http://www.w3.org/2000/svg">
   <title id="arch-t">Token Wars answer pipeline</title>
-  <desc id="arch-d">A request goes through the cache, router and context builder, then the required Azure API Management gateway. The model layer contains four groups: Fireworks through Foundry (fw), frontier models through Foundry (premium, balanced and economy), other models through Foundry (open and embedding), and optional selfhosted models (Ollama). All four groups use the gateway's built-in physical-model routing and team/provider token metrics. Challenge 3.6 adds Azure-to-Fireworks failover only. The separate Judge Model uses GPT-5.5 directly, as the sole inference exception outside team token budgets and scores. A cache hit skips the answer model; an ESCALATE reply requests a higher tier through the gateway.</desc>
+  <desc id="arch-d">A request goes through the cache, router and context builder, then the required Azure API Management gateway. Optional TODO 3.2b calls Microsoft-Decision-1 through APIM before selecting an answer tier: a choice selects the tier, with premium as the low-probability fallback. The model layer includes Fireworks, frontier answer tiers, open and embedding models, selfhosted models, and the required Microsoft-Decision-1 deployment named decision. Decision is not a chat model and uses the primary-only native API. After a chat answer, optional TODO 3.3b verifies non-premium answers against the exact context through APIM. An accepted answer proceeds to final caching and judging; a rejected answer escalates to the next tier and is verified again unless premium is reached. Premium answers and disabled verification bypass the verifier; explicit ESCALATE or empty answers go straight to escalation. A cache hit skips routing, generation and verification. Both optional hooks are off by default, but the Decision deployment is required. Decision calls are costed; the separate GPT-5.5 judge remains outside the team budget.</desc>
   <defs>
     <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7df9ff"/></marker>
     <marker id="ahm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff4fb8"/></marker>
@@ -436,22 +438,33 @@ tr.grp th{background:rgba(125,249,255,.06);color:var(--cyan);font:700 .74rem var
   <g class="n"><rect x="20" y="40" width="130" height="64" rx="12"/><text x="85" y="68">Request</text><text class="s" x="85" y="88">id · customer · question</text></g>
   <g class="n"><rect x="200" y="40" width="160" height="64" rx="12"/><text x="280" y="68">Cache</text><text class="s" x="280" y="88">exact · semantic</text></g>
   <text class="todo" x="280" y="124">TODO 1.5 · 1.6</text>
-  <g class="n"><rect x="410" y="40" width="150" height="64" rx="12"/><text x="485" y="68">Router</text><text class="s" x="485" y="88">none · rules · classifier</text></g>
-  <text class="todo" x="485" y="124">TODO 3.1 · 3.2</text>
-  <g class="n"><rect x="610" y="40" width="190" height="64" rx="12"/><text x="705" y="68">Context builder</text><text class="s" x="705" y="88">KB retrieval · order lookup</text></g>
-  <text class="todo" x="705" y="124">TODO 1.2 · 1.3 (+ prompts 1.1 · 1.7)</text>
+  <g class="n"><rect x="410" y="40" width="190" height="64" rx="12"/><text x="505" y="68">Router</text><text class="s" x="505" y="88">none · rules · classifier · decision</text></g>
+  <text class="todo" x="505" y="26">TODO 3.1 · 3.2</text>
+  <g class="n"><rect x="650" y="40" width="190" height="64" rx="12"/><text x="745" y="68">Context builder</text><text class="s" x="745" y="88">KB retrieval · order lookup</text></g>
+  <text class="todo" x="745" y="124">TODO 1.2 · 1.3 (+ prompts 1.1 · 1.7)</text>
   <line class="ln" x1="150" y1="72" x2="196" y2="72" marker-end="url(#ah)"/>
   <line class="ln" x1="360" y1="72" x2="406" y2="72" marker-end="url(#ah)"/>
-  <line class="ln" x1="560" y1="72" x2="606" y2="72" marker-end="url(#ah)"/>
-  <rect x="320" y="160" width="760" height="64" rx="12" fill="url(#gw)" stroke="#ff4fb8" stroke-width="1.6"/>
-  <text x="700" y="186" fill="#ffd1ec" style="font:600 15px system-ui,Segoe UI,sans-serif;text-anchor:middle">Required AI gateway (Azure API Management)</text>
-  <text x="700" y="207" fill="#a9b1d6" style="font:400 12px system-ui,Segoe UI,sans-serif;text-anchor:middle">built-in model routing · team + provider metrics · 3.5 budgets · 3.6 failover</text>
-  <path class="ln" d="M800 72 H1010 V156" marker-end="url(#ah)"/>
+  <line class="ln" x1="600" y1="72" x2="646" y2="72" marker-end="url(#ah)"/>
+  <g class="n l optional" id="decision-routing">
+    <rect x="390" y="164" width="230" height="78" rx="12"/>
+    <text x="505" y="188">3.2b · Optional Decision routing</text>
+    <text class="s" x="505" y="208">choice → select answer tier</text>
+    <text class="s" x="505" y="228">low probability → premium</text>
+  </g>
+  <path class="ln decision" d="M505 108 V160" marker-start="url(#ahm)" marker-end="url(#ahm)"/>
+  <text class="lbl" x="523" y="148">before selecting the answer model</text>
+  <rect id="architecture-gateway" x="320" y="286" width="760" height="64" rx="12" fill="url(#gw)" stroke="#ff4fb8" stroke-width="1.6"/>
+  <text x="700" y="306" fill="#ffd1ec" style="font:600 15px system-ui,Segoe UI,sans-serif;text-anchor:middle">Required AI gateway (Azure API Management)</text>
+  <text x="700" y="324" fill="#a9b1d6" style="font:400 12px system-ui,Segoe UI,sans-serif;text-anchor:middle">chat + embeddings · /decisions (native API)</text>
+  <text x="700" y="342" fill="#a9b1d6" style="font:400 12px system-ui,Segoe UI,sans-serif;text-anchor:middle">team + provider metrics · 3.5 chat budgets · 3.6 chat failover only</text>
+  <path class="ln decision" id="decision-route-call" d="M505 246 V282" marker-start="url(#ahm)" marker-end="url(#ahm)"/>
+  <text class="lbl" x="523" y="260">choice request + result</text>
+  <path class="ln" d="M840 72 H1010 V282" marker-end="url(#ah)"/>
   <text class="lbl" x="880" y="64">chat + embeddings</text>
-  <g id="model-layer">
-    <rect class="model-layer" x="20" y="268" width="1060" height="238" rx="16"/>
+  <g id="model-layer" transform="translate(0 132)">
+    <rect class="model-layer" x="20" y="268" width="1060" height="312" rx="16"/>
     <text x="40" y="294" fill="#7df9ff" style="font:700 17px system-ui,Segoe UI,sans-serif">Model layer</text>
-    <text x="40" y="315" fill="#a9b1d6" style="font:400 12px system-ui,Segoe UI,sans-serif">Answer, classifier and embedding models · all accessed through APIM</text>
+    <text x="40" y="315" fill="#a9b1d6" style="font:400 12px system-ui,Segoe UI,sans-serif">Answer, classifier, embedding and Decision models · all accessed through APIM</text>
     <g id="models-fireworks">
       <rect class="model-group" x="36" y="352" width="220" height="134" rx="12" style="stroke:#b48cff" stroke-dasharray="6 4"/>
       <text class="group-title" x="146" y="374">Fireworks through Foundry</text>
@@ -479,27 +492,64 @@ tr.grp th{background:rgba(125,249,255,.06);color:var(--cyan);font:700 .74rem var
       <text class="group-note" x="979" y="393">Ollama · optional</text>
       <g class="n m"><rect x="906" y="408" width="146" height="66" rx="10"/><text x="979" y="434">selfhosted</text><text class="s" x="979" y="455">llama3.2:3b</text></g>
     </g>
+    <g id="models-decision">
+      <rect class="model-group" x="36" y="504" width="1028" height="60" rx="12" style="stroke:#ff4fb8"/>
+      <g class="n l"><rect x="50" y="512" width="330" height="44" rx="10"/><text x="215" y="532">Microsoft-Decision-1</text><text class="s" x="215" y="550">Required model · deployment: decision</text></g>
+      <text class="group-title" x="720" y="530">Native Decision API · /systemone · primary only</text>
+      <text class="group-note" x="720" y="550">choice for routing · noul for verification · not a chat model</text>
+    </g>
   </g>
-  <path class="ln" d="M840 224 V330 M146 330 H979"/>
-  <path class="ln" d="M146 330 V348" marker-end="url(#ah)"/>
-  <path class="ln" d="M442 330 V348" marker-end="url(#ah)"/>
-  <path class="ln" d="M753 330 V348" marker-end="url(#ah)"/>
-  <path class="ln" d="M979 330 V348" marker-end="url(#ah)"/>
-  <text x="500" y="531" style="fill:#c6ff4a;font:700 12px ui-monospace,Consolas,monospace;text-anchor:middle">ESCALATE (TODO 3.3): economy → balanced → premium</text>
-  <text class="lbl" x="500" y="550" style="text-anchor:middle">open / selfhosted / fw / fw_* → premium · every retry uses APIM</text>
-  <g class="n j"><rect x="640" y="596" width="180" height="66" rx="12"/><text x="730" y="622">Judge</text><text class="s" x="730" y="643">score 1–5 · pass ≥ 4</text></g>
-  <g class="n j" id="judge-model"><rect x="878" y="596" width="186" height="66" rx="12"/><text x="971" y="622">Judge Model</text><text class="s" x="971" y="643">GPT-5.5</text></g>
-  <line x1="824" y1="629" x2="874" y2="629" stroke="#ffb547" stroke-width="2" marker-start="url(#ahj)" marker-end="url(#ahj)"/>
-  <text x="971" y="574" style="fill:#ffb547;font:600 12px system-ui,Segoe UI,sans-serif;text-anchor:middle">Direct exception · outside team budget</text>
-  <g class="n j"><rect x="370" y="596" width="180" height="66" rx="12"/><text x="460" y="622">Scorecard</text><text class="s" x="460" y="643">cost / success</text></g>
-  <g class="n l"><rect x="70" y="596" width="180" height="66" rx="12" filter="url(#glow)"/><text x="160" y="622">Leaderboard</text><text class="s" x="160" y="643">run --submit</text></g>
-  <path class="ln" d="M730 506 V592" marker-end="url(#ah)"/>
-  <text class="lbl" x="746" y="575">answer</text>
-  <line class="ln" x1="640" y1="629" x2="554" y2="629" marker-end="url(#ah)"/>
-  <line class="ln" x1="370" y1="629" x2="254" y2="629" marker-end="url(#ah)"/>
-  <path d="M280 104 V142 H8 V568 H700 V592" stroke="#ff4fb8" stroke-width="2" fill="none" stroke-dasharray="6 5" marker-end="url(#ahm)"/>
-  <text x="40" y="535" style="fill:#ff9fd6;font:italic 12px system-ui,Segoe UI,sans-serif">cache hit → cost 0, skip the answer model</text>
-</svg><figcaption>The model layer groups deployments by model family and hosting platform; all four groups use required APIM. Fireworks and selfhosted groups are optional (dashed). Only the separate Judge Model (GPT-5.5) is called directly, outside team budgets and scores. Classifier, embedding and escalation calls are costed. Scroll horizontally on smaller screens to read the diagram.</figcaption></figure>
+  <path class="ln" d="M840 350 V462 M146 462 H979"/>
+  <path class="ln" d="M146 462 V480" marker-end="url(#ah)"/>
+  <path class="ln" d="M442 462 V480" marker-end="url(#ah)"/>
+  <path class="ln" d="M753 462 V480" marker-end="url(#ah)"/>
+  <path class="ln" d="M979 462 V480" marker-end="url(#ah)"/>
+  <path class="ln decision" id="decision-model-call" d="M350 354 V372 H28 V666 H46" marker-start="url(#ahm)" marker-end="url(#ahm)"/>
+  <text class="lbl" x="52" y="390">/decisions → native Decision API</text>
+  <path class="ln" d="M442 618 V630 M693 618 V630 M979 618 V630"/>
+  <path class="ln" id="answer-model-responses" d="M146 618 V630 H1072 V774 H624" marker-end="url(#ah)"/>
+  <text class="lbl" x="934" y="758">chat answer via APIM</text>
+  <g class="n" id="draft-answer"><rect x="410" y="744" width="210" height="66" rx="12"/><text x="515" y="770">Draft answer</text><text class="s" x="515" y="791">from the selected chat model</text></g>
+  <g class="n l optional" id="decision-verification">
+    <rect x="380" y="846" width="270" height="82" rx="12"/>
+    <text x="515" y="872">3.3b · Optional verification</text>
+    <text class="s" x="515" y="893">non-premium answer + exact context</text>
+    <text class="s" x="515" y="914">noul ≥ decision_threshold → accept</text>
+  </g>
+  <path class="ln" d="M515 814 V842" marker-end="url(#ah)"/>
+  <text class="lbl" x="533" y="832">non-premium + enabled</text>
+  <g class="n" id="answer-escalation">
+    <rect x="80" y="846" width="240" height="82" rx="12"/>
+    <text x="200" y="872">Escalate · TODO 3.3</text>
+    <text class="s" x="200" y="893">economy → balanced → premium</text>
+    <text class="s" x="200" y="914">open / selfhosted / fw / others → premium</text>
+  </g>
+  <path class="ln decision" id="verification-reject" d="M376 887 H324" marker-end="url(#ahm)"/>
+  <text class="lbl" x="328" y="876">reject</text>
+  <path class="ln" id="answer-explicit-escalation" d="M406 777 H200 V842" marker-end="url(#ah)"/>
+  <text class="lbl" x="222" y="746">non-premium</text>
+  <text class="lbl" x="222" y="763">ESCALATE / empty</text>
+  <path class="ln" id="escalation-retry" d="M76 887 H18 V310 H316" marker-end="url(#ah)"/>
+  <text class="lbl" x="52" y="330">next tier · rebuild context · retry via APIM</text>
+  <g class="n" id="final-answer"><rect x="790" y="846" width="270" height="82" rx="12"/><text x="925" y="872">Final answer</text><text class="s" x="925" y="893">cache only the final answer</text><text class="s" x="925" y="914">accepted / premium / verification off</text></g>
+  <path class="ln" id="verification-accept" d="M654 887 H786" marker-end="url(#ah)"/>
+  <text class="lbl" x="692" y="876">accept</text>
+  <path class="ln" id="verification-bypass" d="M624 793 H925 V842" marker-end="url(#ah)"/>
+  <text class="lbl" x="758" y="820">premium / verification off</text>
+  <path class="ln decision" id="decision-verification-call" d="M590 932 V948 H1092 V310 H1084" marker-start="url(#ahm)" marker-end="url(#ahm)"/>
+  <text class="lbl" x="680" y="941">noul request + result via APIM</text>
+  <path class="ln" d="M925 932 V964 H730 V996" marker-end="url(#ah)"/>
+  <g class="n j"><rect x="640" y="1000" width="180" height="66" rx="12"/><text x="730" y="1026">Judge</text><text class="s" x="730" y="1047">score 1–5 · pass ≥ 4</text></g>
+  <g class="n j" id="judge-model"><rect x="878" y="1000" width="186" height="66" rx="12"/><text x="971" y="1026">Judge Model</text><text class="s" x="971" y="1047">GPT-5.5</text></g>
+  <line x1="824" y1="1033" x2="874" y2="1033" stroke="#ffb547" stroke-width="2" marker-start="url(#ahj)" marker-end="url(#ahj)"/>
+  <text x="971" y="986" style="fill:#ffb547;font:600 12px system-ui,Segoe UI,sans-serif;text-anchor:middle">Direct exception · outside team budget</text>
+  <g class="n j"><rect x="370" y="1000" width="180" height="66" rx="12"/><text x="460" y="1026">Scorecard</text><text class="s" x="460" y="1047">cost / success</text></g>
+  <g class="n l"><rect x="70" y="1000" width="180" height="66" rx="12" filter="url(#glow)"/><text x="160" y="1026">Leaderboard</text><text class="s" x="160" y="1047">run --submit</text></g>
+  <line class="ln" x1="640" y1="1033" x2="554" y2="1033" marker-end="url(#ah)"/>
+  <line class="ln" x1="370" y1="1033" x2="254" y2="1033" marker-end="url(#ah)"/>
+  <path class="ln decision" id="cache-hit" d="M280 104 V142 H8 V972 H680 V996" marker-end="url(#ahm)"/>
+  <text x="40" y="960" style="fill:#ff9fd6;font:italic 12px system-ui,Segoe UI,sans-serif">cache hit → skip routing, generation and verification</text>
+</svg><figcaption>Pink dashed blocks are the optional <a href="#step-3.2b">Decision routing (3.2b)</a> and <a href="#step-3.3b">answer verification (3.3b)</a> hooks, both off by default. The solid Microsoft-Decision-1 model is always deployed as <code>decision</code>; both hooks call it through APIM and count toward team cost. Verification requires escalation enabled: a rejected non-premium answer escalates and is verified again; premium ends the chain. Fireworks and selfhosted groups are also optional (dashed). Only the separate Judge Model (GPT-5.5) is called directly, outside team budgets and scores. Scroll horizontally on smaller screens to read the diagram.</figcaption></figure>
 </section>
 <section id="scenario" class="doc-section" aria-labelledby="scenario-h"><p class="kicker">The scenario</p><h2 id="scenario-h">The scenario: ByteCart Support Copilot</h2>
 <p><strong>ByteCart</strong> is a fictional, fast-growing digital-native e-commerce marketplace based in the EU (prices in EUR). Its GenAI <em>Support Copilot</em> answers customer questions about returns, shipping, payments, ByteCart Plus membership, marketplace sellers, warranties, coupons, gift cards, privacy and orders.</p>

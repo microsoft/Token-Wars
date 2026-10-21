@@ -276,6 +276,28 @@ class PythonDecisionTests(AppTests, unittest.TestCase):
 
 
 class GuideTests(unittest.TestCase):
+    def test_architecture_shows_required_decision_model_and_optional_hooks(self):
+        guide = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        svg = ET.fromstring(re.search(r'<svg class="arch".*?</svg>', guide, re.S).group())
+        nodes = {element.get("id"): element for element in svg.iter() if element.get("id")}
+        model = nodes["models-decision"]
+        self.assertIn(model, list(nodes["model-layer"]))
+        model_text = " ".join(model.itertext())
+        self.assertIn("Microsoft-Decision-1", model_text)
+        self.assertIn("Required model", model_text)
+        self.assertIn("deployment: decision", model_text)
+        for node_id, todo in (("decision-routing", "3.2b"), ("decision-verification", "3.3b")):
+            self.assertIn("optional", nodes[node_id].get("class").split())
+            self.assertIn(todo, " ".join(nodes[node_id].itertext()))
+        for path_id in ("decision-route-call", "decision-model-call", "decision-verification-call",
+                        "verification-accept", "verification-reject", "verification-bypass",
+                        "escalation-retry", "cache-hit"):
+            self.assertTrue(nodes[path_id].get("d"), path_id)
+        description = "".join(nodes["arch-d"].itertext())
+        for behavior in ("exact context", "low-probability fallback", "Premium answers",
+                         "cache hit skips routing", "off by default"):
+            self.assertIn(behavior, description)
+
     def test_optional_solutions_match_source_and_have_navigation_and_prompts(self):
         guide = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
         for step, python_file, dotnet_file in (("3.2b", "router.py", "Router.cs"), ("3.3b", "pipeline.py", "Pipeline.cs")):
