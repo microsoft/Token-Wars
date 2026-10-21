@@ -73,8 +73,10 @@ Coach automation should also use `--premium-key` / `--balanced-key` for the brea
 
 ## Optional Decision exercises (required deployment)
 
-Terraform **always deploys Microsoft-Decision-1** (publisher `Microsoft`, version `1`, GlobalStandard, capacity `1`)
-on the primary Foundry resource. Check its own availability/quota units before setup. There is no
+Terraform **always deploys Microsoft-Decision-1** (publisher `Microsoft`, version `1`) under the deployment name
+`decision` on the primary Foundry resource. The catalog model name and deployment resource name are distinct:
+using `Microsoft-Decision-1` as the resource name fails Azure's reserved-word validation. Configure its SKU and
+capacity through `decision_model` and check availability/quota units before setup. There is no
 `deploy_decision` switch: only the exercises are optional. Existing teams must run `terraform apply` to add the
 deployment, gateway operation and regenerated registry; shared teams receive updated files from their coach.
 
