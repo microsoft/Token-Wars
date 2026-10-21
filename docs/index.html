@@ -194,6 +194,16 @@ details.agentic-assistant[open]>summary{border-block-end-color:rgba(180,140,255,
 .step-solution summary{overflow-wrap:anywhere}
 .step-solution>summary{font-size:1.1rem}
 @media print{.step-solution pre{max-height:none}}
+.solution-gate-badge{display:inline-block;margin-inline-start:10px;font:700 .75rem var(--mono);color:var(--cyan);border:1px solid rgba(125,249,255,.45);border-radius:999px;padding:3px 9px;vertical-align:middle}
+.solution-gate{width:min(520px,calc(100% - 32px));max-height:calc(100vh - 32px);overflow-y:auto;padding:clamp(20px,4vw,32px);color:var(--fg);font:16px/1.6 var(--font);
+  background:linear-gradient(135deg,rgba(125,249,255,.08),rgba(255,79,184,.08)),var(--panel);border:1px solid var(--cyan);border-radius:20px;box-shadow:0 0 48px rgba(125,249,255,.15),0 24px 80px rgba(0,0,0,.6)}
+.solution-gate::backdrop{background:rgba(7,8,20,.82);backdrop-filter:blur(5px)}
+.solution-gate h2{margin-block:.5em .7em;font-size:1.65rem}
+.solution-gate-progress{display:inline-block;margin:0;padding:5px 12px;border:1px solid rgba(255,181,71,.55);border-radius:999px;color:var(--amber);font:800 .9rem var(--mono)}
+.solution-gate-message{font-size:1.15rem;margin-block:18px 10px}
+.solution-gate-actions{display:flex;flex-wrap:wrap;gap:10px;margin-block-start:24px}
+.solution-gate-actions .btn{flex:1 1 180px;min-height:44px}
+@media print{.solution-gate,.solution-gate-badge{display:none!important}}
 .hint-item{margin-block:10px}
 .solref{border-inline-start:3px solid var(--violet);padding:6px 12px;background:rgba(180,140,255,.07);border-radius:0 10px 10px 0;margin:6px 0}
 .check-box{margin-block-start:14px;border:1px solid rgba(198,255,74,.45);background:rgba(198,255,74,.05);border-radius:12px;padding:10px 16px}
@@ -1065,6 +1075,8 @@ dotnet run -- doctor
 <p><strong>Workflow for every TODO:</strong> implement → flip the flag in <span class="lang-py"><code>python/starter/strategy.json</code></span><span class="lang-net"><code>dotnet/starter/TokenWars/strategy.json</code></span> → quick run with <code>--limit 20</code> → check the scorecard fields listed on the card. If you turn a flag on before implementing its TODO, the app fails fast with <code>TODO x.y not implemented yet – see &lt;file&gt;</code>.</p>
 <p class="muted small">Each TODO has an initially hidden <strong>GitHub Copilot Agent prompt</strong> after its hint and an initially hidden <strong>Solution</strong> after “Check your result.” The prompt is tailored to the selected language and can generate the change in Agent mode; review every proposed edit before accepting it. The solution provides exact starter-file locations, copyable replacements and the required settings. Reveal either only when needed. Line numbers use this checkout’s original starter; use the method names after earlier edits. For each command, choose either the PowerShell or Bash block and run it from the repository root; do not run both alternatives. Bash blocks use a subshell to preserve your current directory and shell settings. Real validation calls incur token charges, and a zero exit code alone does not prove ≥85% quality.</p>
 <p><strong>Break checkpoint (1:30):</strong> run the full workload with <span class="lang-py"><code>python -m tokenwars run</code></span><span class="lang-net"><code>dotnet run -- run</code></span>, fill in the tracker, then submit with <span class="lang-py"><code>python -m tokenwars run --submit</code></span><span class="lang-net"><code>dotnet run -- run --submit</code></span>.</p>
+
+<p class="muted small">Opening any TODO's solution takes <strong>two confirmations</strong>. Each step shows a remaining-confirmation count and a randomly selected nudge in English; consecutive messages never repeat. Cancel or press Escape to keep the solution hidden. Closing and reopening a solution starts the confirmations again.</p>
 
 <article class="step-card" id="step-1.1" data-step="1.1" data-group="c1" aria-labelledby="h-1.1">
   <header class="step-head">
@@ -3238,6 +3250,19 @@ terraform destroy      # review, then type "yes"</code></pre></div>
 <footer class="foot"><p>Token Wars microhack · participant guide · works offline. Progress, language choice, tracker and timer are stored only in this browser (localStorage).</p></footer>
 </main>
 </div>
+<dialog class="solution-gate" id="solution-gate-dialog" aria-labelledby="solution-gate-title" aria-describedby="solution-gate-context solution-gate-progress solution-gate-message solution-gate-remaining">
+  <p class="kicker" id="solution-gate-context">Solution checkpoint</p>
+  <h2 id="solution-gate-title">A tiny spoiler checkpoint</h2>
+  <div aria-live="polite" aria-atomic="true">
+    <p class="solution-gate-progress" id="solution-gate-progress">Confirmation 1 of 2</p>
+    <p class="solution-gate-message" id="solution-gate-message"></p>
+    <p class="muted" id="solution-gate-remaining">2 confirmations remaining before the solution opens.</p>
+  </div>
+  <div class="solution-gate-actions">
+    <button type="button" class="btn btn-neon" id="solution-gate-cancel" autofocus>I'll try it myself</button>
+    <button type="button" class="btn" id="solution-gate-confirm">I still want a peek (1/2)</button>
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 (function () {
@@ -3612,6 +3637,85 @@ Run terraform -chdir=infra fmt -check and validate, then create and inspect a pl
     });
   }
   addAgenticPanels();
+
+  /* ---------- solution confirmations ---------- */
+  var activeSolution;
+  var activeSummary;
+  var solutionGate = $("#solution-gate-dialog");
+  var gateCancel = $("#solution-gate-cancel");
+  var gateConfirm = $("#solution-gate-confirm");
+  var gateStep = 0;
+  var lastGateMessage = "";
+  var gateMessages = [
+    "Whoa, eager beaver! Give your brain a chance before peeking.",
+    "Patience, code Jedi. The solution is strong, but so are you.",
+    "Plot twist: the real solution might be the code you write next.",
+    "Your brain called. It would like one more debugging attempt.",
+    "Before you summon the spoiler dragon, try one tiny experiment.",
+    "Even rubber ducks deserve a chance to hear your theory first.",
+    "Keep the mystery alive! Your next idea might be the winning one.",
+    "This solution contains spoilers. Your future victory speech may thank you for waiting.",
+    "The copy-paste goblin is tempting, but your debugging powers are stronger.",
+    "One small step for your cursor, one giant spoiler for your challenge.",
+    "Achievement still available: solve it before the curtain goes up.",
+    "Coffee helps. Hints help. Giving it one more shot might help too."
+  ];
+  var gateSteps = [
+    {
+      remaining: "2 confirmations remaining before the solution opens.",
+      confirm: "I still want a peek (1/2)"
+    },
+    {
+      remaining: "1 confirmation remaining before the solution opens.",
+      confirm: "Reveal the solution (2/2)"
+    }
+  ];
+
+  function renderSolutionGate() {
+    var choices = gateMessages.filter(function (message) { return message !== lastGateMessage; });
+    lastGateMessage = choices[Math.floor(Math.random() * choices.length)];
+    $("#solution-gate-progress").textContent = "Confirmation " + (gateStep + 1) + " of 2";
+    $("#solution-gate-message").textContent = lastGateMessage;
+    $("#solution-gate-remaining").textContent = gateSteps[gateStep].remaining;
+    gateConfirm.textContent = gateSteps[gateStep].confirm;
+  }
+  $$(".step-solution").forEach(function (solution) {
+    var summary = $("summary", solution);
+    var badge = document.createElement("span");
+    badge.className = "solution-gate-badge";
+    badge.textContent = "2 confirmations";
+    summary.appendChild(badge);
+    summary.addEventListener("click", function (ev) {
+      if (solution.open) return;
+      ev.preventDefault();
+      activeSolution = solution;
+      activeSummary = summary;
+      gateStep = 0;
+      $("#solution-gate-context").textContent = "TODO " + solution.getAttribute("data-solution-step") + " / Solution checkpoint";
+      renderSolutionGate();
+      solutionGate.showModal();
+    });
+  });
+  gateCancel.addEventListener("click", function () { solutionGate.close(); });
+  solutionGate.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      solutionGate.close();
+    }
+  });
+  solutionGate.addEventListener("close", function () { activeSummary.focus(); });
+  gateConfirm.addEventListener("click", function (ev) {
+    // A double-click must not skip the second message.
+    if (ev.detail > 1) return;
+    if (gateStep === 0) {
+      gateStep = 1;
+      renderSolutionGate();
+      gateCancel.focus();
+    } else {
+      activeSolution.open = true;
+      solutionGate.close();
+    }
+  });
 
   /* ---------- toast ---------- */
   var toastEl = $("#toast"), toastT;

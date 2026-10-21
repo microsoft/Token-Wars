@@ -23,6 +23,10 @@ Step-by-step instructions: open [`docs/index.html`](docs/index.html) in a browse
 Each TODO in the [participant guide](docs/index.html#ch1) has an initially collapsed **GitHub Copilot Agent prompt**
 after its hint, plus a collapsed **Solution** after the result check. Prompts and solutions are tailored to the selected
 Python/.NET track; solutions include exact starter-file locations, copyable replacements and separate optional extras.
+Every TODO asks for two confirmations before opening its solution, with a remaining-confirmation count at each step.
+Messages are randomly selected from a pool of 12 English nudges, excluding the last message shown so consecutive
+messages never repeat, including across attempts. Cancel or press Escape to keep the solution hidden; reopening
+starts again at the first confirmation.
 Before the event, every team works through [`coach/pre-event-checklist.md`](coach/pre-event-checklist.md).
 
 ## Principles
