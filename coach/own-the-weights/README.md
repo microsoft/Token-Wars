@@ -17,7 +17,7 @@ not be confirmed. Re-check them one week before the event.
 
 | Reason | Detail |
 |---|---|
-| Wall-clock time | Queueing + training + deployment can take hours (VALIDATE: typically 1–3 h for ~400 short examples). That doesn't fit in a 4-hour workshop. |
+| Wall-clock time | Queueing + training + deployment can take hours (VALIDATE: typically 1–3 h for ~400 short examples). That doesn't fit in a hands-on workshop. |
 | Running cost | A deployed fine-tuned model bills an **hourly hosting fee whether or not you call it**. A team that forgets to delete it pays for days. |
 | Permissions | Training needs **Foundry User**. Deploying needs **Foundry Owner** (or `Microsoft.CognitiveServices/accounts/deployments/write`). Many team subscriptions don't grant this. |
 | Region / quota | Global training only runs from supported project regions (Sweden Central is supported). The deployment needs Global Standard fine-tuned quota. |
@@ -119,7 +119,7 @@ The biggest risk is a deployment you forget to delete: $0.65 × 730 h ≈ **$475
 | **T-7 days** | Confirm the coach subscription, region (`swedencentral`), roles (Foundry Owner), and fine-tuned Global Standard quota. Re-check section 2 and the VALIDATE list. Deploy the Token Wars infra in the coach subscription (`team_name = "coach"`), which gives you `.env` and `models.json`. |
 | **T-2 days** | Run `generate_dataset.py --mock` (plumbing check), then the real teacher run. Review `manifest.json`, spot-check ~10 examples and read the `leakage` rows in `dropped.jsonl`. |
 | **T-1 day** | `finetune all` (train + deploy). Run `register_custom_model.py --write-pricing`, then `doctor` and a dry-run `compare --models balanced,premium,custom`. Save the compare JSON as a backup slide. |
-| **Event** (≈10 min in "Final Showdown & Debrief", or after Challenge 2) | Live `compare --models balanced,premium,custom`, then `breakeven.py` at 100k and 1M requests/month. Use the debrief talking points (section 11). |
+| **Event** (in "Final Showdown & Debrief", or after Challenge 2) | Live `compare --models balanced,premium,custom`, then `breakeven.py` at 100k and 1M requests/month. Use the debrief talking points (section 11). |
 | **After the event** | `finetune delete` (stops the hosting fee), `register_custom_model.py --remove --write-pricing`, `git checkout shared/config/pricing.json`, optionally `finetune cleanup-files`. |
 
 ## 6. Step by step

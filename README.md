@@ -1,6 +1,6 @@
 # Token Wars: Build, Route & Optimize Your AI Stack
 
-A 4-hour Azure GenAI **cost-optimisation microhack** for digital-native teams.
+A hands-on Azure GenAI **cost-optimisation microhack** for digital-native teams.
 
 **ByteCart** is a fictional, fast-growing EU e-commerce marketplace. Its GenAI *Support Copilot* answers customer
 questions — and it works, but it is **expensive**: it always calls the premium model, stuffs the whole knowledge base and
@@ -10,14 +10,14 @@ kicks in), has no output limits and no caching.
 Your mission: **cut the cost per successful answer** while keeping answer quality above the bar (≥ 85 % of the
 100 workload questions judged correct by an LLM judge). The cheapest valid team wins the leaderboard.
 
-| Time | Block |
+| # | Block |
 |---|---|
-| 0:00 | Kickoff — "Enter the Arena" (deploy, run the baseline) |
-| 0:30 | Challenge 1 — "The Token Diet" (prompt, retrieval, output control, caching) |
-| 1:30 | Break |
-| 1:40 | Challenge 2 — "Bring Your Own Model" (open-weight & self-hosted models, compare; optional 2.4 *Fireworks Arena*) |
-| 2:40 | Challenge 3 — "Route & Rule" (routing, escalation, retries, AI gateway policies; stretch 3.6 *Multi-Provider Failover*) |
-| 3:30 | Final Showdown & Debrief |
+| 1 | Kickoff — "Enter the Arena" (deploy, run the baseline) |
+| 2 | Challenge 1 — "The Token Diet" (prompt, retrieval, output control, caching) |
+| 3 | Break |
+| 4 | Challenge 2 — "Bring Your Own Model" (open-weight & self-hosted models, compare; optional 2.4 *Fireworks Arena*) |
+| 5 | Challenge 3 — "Route & Rule" (routing, escalation, retries, AI gateway policies; stretch 3.6 *Multi-Provider Failover*) |
+| 6 | Final Showdown & Debrief |
 
 Step-by-step instructions: open [`docs/index.html`](docs/index.html) in a browser.
 Each TODO in the [participant guide](docs/index.html#ch1) has an initially collapsed **GitHub Copilot Agent prompt**
@@ -34,7 +34,7 @@ Before the event, every team works through [`coach/pre-event-checklist.md`](coac
 - **Pay-as-you-go first.** Every model in the kit is billed per token (Global / Data Zone Standard). Nothing in the
   kit requires provisioned throughput (PTU); PTU only appears as a "for reference" line in the coach's break-even demo.
 - **Each team brings its own Azure subscription.** Quota, feature registrations and costs stay isolated per team.
-  The coach uses a **separate** subscription for the leaderboard and for demos that do not fit into 4 hours
+  The coach uses a **separate** subscription for the leaderboard and for demos that do not fit into the event
   ("Own the Weights" fine-tuning). Exception: teams without a subscription get a per-team gateway on the coach's
   shared models ([`infra/shared`](infra/shared/README.md)).
 - **Optional extras stay optional.** Fireworks on Foundry (Challenge 2.4) and multi-provider failover (Challenge 3.6)

@@ -1,8 +1,8 @@
 # Coach Guide — Token Wars: Build, Route & Optimize Your AI Stack
 
-Audience: developers/architects of digital-native companies. Format: 4 hours, teams of 2–4, **each team brings its own Azure
+Audience: developers/architects of digital-native companies. Format: hands-on hackathon, teams of 2–4, **each team brings its own Azure
 subscription**, Python **or** .NET. The coach uses a **separate** subscription for the leaderboard and for demos teams
-cannot do in 4 hours ("Own the Weights"). Goal: lowest **cost per successful answer** with pass rate ≥ 85 %.
+cannot do during the event ("Own the Weights"). Goal: lowest **cost per successful answer** with pass rate ≥ 85 %.
 Principle: **pay-as-you-go first** — every model is billed per token; nothing in the kit requires PTU.
 
 Related: [pre-event-checklist.md](pre-event-checklist.md) · [scoring.md](scoring.md) · [troubleshooting.md](troubleshooting.md) ·
@@ -54,37 +54,39 @@ the team's own.
 
 ## 2. Run of show
 
-| Time | Block | Coach does | Teams do |
-|---|---|---|---|
-| **0:00–0:30** | **Kickoff — "Enter the Arena"** | Story (ByteCart, expensive copilot), metric, rules, agenda, leaderboard. Live demo of `run --limit 20` scorecard. | `az login`, `terraform apply` (if not done), `doctor`, first baseline `run --limit 20`, then full baseline `run --submit`. |
-| **0:30–1:30** | **Challenge 1 — "The Token Diet"** | Walk the room, unblock infra, push teams to measure after each change. 0:55 mini-checkpoint: "who has keyword retrieval working?" | TODO 1.1–1.7: compact prompt, keyword retrieval, order lookup, output control, exact + semantic cache, cache-friendly layout. Submit. |
-| **1:30–1:40** | **Break** | Read leaderboard aloud, praise biggest improvement. Option B for "Own the Weights": start the `compare --models balanced,premium,custom` run on the big screen (section 5). | — |
-| **1:40–2:40** | **Challenge 2 — "Bring Your Own Model"** | 5-min intro to model tiers, open-weight vs self-hosted TCO, open vs closed premium (2.4). | TODO 2.1–2.3: open/self-hosted model, `compare`, pick model per tier, prompt adaptation. Optional 2.4 *Fireworks Arena* (split below). Submit. |
-| **2:40–3:30** | **Challenge 3 — "Route & Rule"** | 5-min intro to routing + AI gateway. Demo the APIM token limit (429) with two consumers. | TODO 3.1–3.5: rules/classifier router, escalation, retry, APIM policy, `use_gateway`. Teams done by ~3:05 with APIM + Fireworks: stretch 3.6 *Multi-Provider Failover*. Final submissions by **3:25**. |
-| **3:30–4:00** | **Final Showdown & Debrief** | Freeze board, top-3 teams explain their strategy (3 min each), "Own the Weights" demo (~8 min, section 5), debrief (section 9), cleanup reminder. | `terraform destroy` (unless they want to keep exploring). |
+The blocks run in this order; the coach sets the pace for each block to fit the event.
 
-Timeboxing tips: if a team is > 20 min behind at 0:50, tell them to copy the solution for 1.2/1.3 and move on —
+| # | Block | Coach does | Teams do |
+|---|---|---|---|
+| **1** | **Kickoff — "Enter the Arena"** | Story (ByteCart, expensive copilot), metric, rules, agenda, leaderboard. Live demo of `run --limit 20` scorecard. | `az login`, `terraform apply` (if not done), `doctor`, first baseline `run --limit 20`, then full baseline `run --submit`. |
+| **2** | **Challenge 1 — "The Token Diet"** | Walk the room, unblock infra, push teams to measure after each change. Mini-checkpoint around the middle of the block: "who has keyword retrieval working?" | TODO 1.1–1.7: compact prompt, keyword retrieval, order lookup, output control, exact + semantic cache, cache-friendly layout. Submit. |
+| **3** | **Break** | Read leaderboard aloud, praise biggest improvement. Option B for "Own the Weights": start the `compare --models balanced,premium,custom` run on the big screen (section 5). | — |
+| **4** | **Challenge 2 — "Bring Your Own Model"** | Short intro to model tiers, open-weight vs self-hosted TCO, open vs closed premium (2.4). | TODO 2.1–2.3: open/self-hosted model, `compare`, pick model per tier, prompt adaptation. Optional 2.4 *Fireworks Arena* (order below). Submit. |
+| **5** | **Challenge 3 — "Route & Rule"** | Short intro to routing + AI gateway. Demo the APIM token limit (429) with two consumers. | TODO 3.1–3.5: rules/classifier router, escalation, retry, APIM policy, `use_gateway`. Teams that finish early with APIM + Fireworks: stretch 3.6 *Multi-Provider Failover*. Announce the final-submission cut-off before the showdown. |
+| **6** | **Final Showdown & Debrief** | Freeze board, top-3 teams explain their strategy, "Own the Weights" demo (section 5), debrief (section 9), cleanup reminder. | `terraform destroy` (unless they want to keep exploring). |
+
+Pacing tips: if a team falls clearly behind in Challenge 1, tell them to copy the solution for 1.2/1.3 and move on —
 the fun is in the trade-offs, not in typing tokenisers.
 
-**Challenge 2 — suggested split of the 60 minutes** (2.4 only for teams that deployed Fireworks during setup):
+**Challenge 2 — suggested order** (2.4 only for teams that deployed Fireworks during setup):
 
-| Time | Step |
+| # | Step |
 |---|---|
-| 1:40–1:45 | Coach intro: model tiers, open-weight vs self-hosted TCO, open vs closed premium |
-| 1:45–1:55 | 2.1 open / self-hosted model, `doctor` |
-| 1:55–2:10 | 2.2 `compare --models premium,balanced,economy,open` (teams with Fireworks add `fw` here and save a `compare` run), pick a model per tier |
-| 2:10–2:20 | 2.3 prompt adaptation (also applies to `fw` / `fw_*`) |
-| 2:20–2:35 | 2.4 *Fireworks Arena*: decide which tier `fw` replaces by cost per success + p95, edit `TIER_MODELS` / `Router.TierModels` or `default_model`, quick run. Teams without Fireworks: tune the tier mapping instead. |
-| 2:35–2:40 | Full run + submit |
+| 1 | Coach intro: model tiers, open-weight vs self-hosted TCO, open vs closed premium |
+| 2 | 2.1 open / self-hosted model, `doctor` |
+| 3 | 2.2 `compare --models premium,balanced,economy,open` (teams with Fireworks add `fw` here and save a `compare` run), pick a model per tier |
+| 4 | 2.3 prompt adaptation (also applies to `fw` / `fw_*`) |
+| 5 | 2.4 *Fireworks Arena*: decide which tier `fw` replaces by cost per success + p95, edit `TIER_MODELS` / `Router.TierModels` or `default_model`, quick run. Teams without Fireworks: tune the tier mapping instead. |
+| 6 | Full run + submit |
 
 Never let a team start the Fireworks opt-in or deployment during Challenge 2: up to 30 min for the feature plus up to
-30 min per deployment. If it is not ready by 1:40, they skip 2.4.
+30 min per deployment. If it is not ready when Challenge 2 starts, they skip 2.4.
 
-**Own the Weights demo — where to put it** (~8–10 min, coach subscription, details in section 5):
-- **Option A (recommended): 3:30 debrief**, right after the top-3 presentations — it closes the "what else could we
-  do?" question: 3:30–3:40 top-3, 3:40–3:48 Own the Weights, 3:48–3:58 debrief, 3:58 cleanup reminder.
-- **Option B: the 1:30 break** — run `compare --models balanced,premium,custom` live on the big screen while teams take a
-  break, then show only `breakeven.py` and the talking points in the debrief (~4 min).
+**Own the Weights demo — where to put it** (coach subscription, details in section 5):
+- **Option A (recommended): final debrief**, right after the top-3 presentations — it closes the "what else could we
+  do?" question: top-3, Own the Weights, debrief, cleanup reminder.
+- **Option B: the break** — run `compare --models balanced,premium,custom` live on the big screen while teams take a
+  break, then show only `breakeven.py` and the talking points in the debrief.
 
 ---
 
@@ -258,8 +260,8 @@ Full kit and run-of-show: [own-the-weights/README.md](own-the-weights/README.md)
 - **Story:** "What if ByteCart owned a small specialist instead of renting the premium model?" A **Ministral-3B**
   model distilled from `premium` with Foundry **serverless SFT** (Global training, Global Standard deployment —
   pay-per-token plus an hourly hosting fee, no PTU) answers with a **short prompt**.
-- **When:** recommended in the 3:30 debrief (~8 min, after the top-3 presentations); alternatively start the live
-  `compare` during the 1:30 break and show only `breakeven.py` in the debrief (section 2).
+- **When:** recommended in the final debrief (after the top-3 presentations); alternatively start the live
+  `compare` during the break and show only `breakeven.py` in the debrief (section 2).
 - **Live steps:** `compare --models balanced,premium,custom` (the *hosting $/h* column appears because `custom` has
   `hourly_cost_usd`), then `python3 breakeven.py --requests 100000` and `python3 breakeven.py` (1M requests/month).
   Keep the T-1 compare JSON as a backup slide. Optionally a 2-min portal walkthrough of *Deploy → Fireworks (preview)*:
@@ -354,7 +356,7 @@ az containerapp update --name tokenwars-leaderboard --resource-group <rg> --min-
 
 ---
 
-## 9. Debrief (10–15 min)
+## 9. Debrief
 
 1. What moved the needle most? (Usually: context size → model choice → caching → routing.)
 2. Where did quality break? (economy on policy reasoning, semantic cache threshold, retrieval misses on 2-doc questions.)
