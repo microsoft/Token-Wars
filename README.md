@@ -160,7 +160,7 @@ These tests live outside the module's default test directory to preserve Terrafo
 │   └── prompts/              system-baseline.md (the wasteful baseline) and judge.md
 ├── python/starter|solution   Python app (requests only)       -> python -m tokenwars ...
 ├── dotnet/starter|solution   .NET 8 app (no NuGet packages)    -> dotnet run -- ...
-├── leaderboard/              stdlib-only leaderboard server + Dockerfile (for coaches)
+├── leaderboard/              Blob-backed multi-event leaderboard + Dockerfile (for coaches)
 ├── quiz/                     mobile takeaway quiz, QR dashboard, team accuracy ranking + Azure deploy script
 ├── coach/                    coach guide, scoring rules, troubleshooting
 │   ├── pre-event-checklist.md  what each team and the coach must do before the event
@@ -174,7 +174,8 @@ These tests live outside the module's default test directory to preserve Terrafo
 English-language mobile quiz. Participants scan a QR code and answer up to five
 questions; the coach dashboard shows team accuracy and reveals answers and
 reinforcement messages after closing responses. Deploy it separately to Azure
-Container Apps with `az containerapp up`, like the leaderboard.
+Container Apps with `az containerapp up`. The persistent leaderboard uses its own
+[Terraform stack](leaderboard/README.md#deploy-to-azure-container-apps).
 
 Full list with commands and timing: [`coach/pre-event-checklist.md`](coach/pre-event-checklist.md).
 

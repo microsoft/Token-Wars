@@ -339,20 +339,17 @@ yet — record them during the T-7 dry run. If a Fireworks model emits reasoning
 
 ## 8. Running the leaderboard
 
-```bash
-cd leaderboard
-az containerapp up --name tokenwars-leaderboard --resource-group <rg> --source . \
-  --ingress external --target-port 8080 --env-vars LEADERBOARD_SUBMIT_KEY=<shared-key>
-az containerapp update --name tokenwars-leaderboard --resource-group <rg> --min-replicas 1 --max-replicas 1
-```
+- Deploy the independent [persistent leaderboard Terraform stack](../leaderboard/README.md#deploy-to-azure-container-apps).
+ It uses private per-key Blob containers and managed identity, separate from disposable team/model infrastructure.
 - Put the printed URL on the big screen (`/`, refreshes every 10 s). Teams set `leaderboard_url` / `leaderboard_key`
   in `terraform.tfvars` (→ `.env`) or directly in `.env`.
 - Validity: full run (100 items) and pass rate ≥ 85 %; mock runs are rejected. Partial or failing runs appear greyed
   out below the ranking with the reason.
-- Data is in the container (`/app/data/submissions.json`); keep 1 replica. Export with `GET /api/submissions`.
-- Configure a separate coach-only `LEADERBOARD_ADMIN_KEY` using a Container Apps secret (see [leaderboard setup](../leaderboard/README.md#deploy-to-azure-container-apps-one-command)); never share it with teams. **Download submissions** exports all runs including strategies after asking for this key.
+- Use **Add leaderboardKey** with the coach admin key before participants submit. The page loads all leaderboards into the selector automatically; select the event to show its ranking (the choice survives page reloads in the same tab).
+- All accepted runs persist in Blob Storage through restarts, replicas and deployments. There is no expiry or automatic deletion.
+- Configure a separate coach-only `LEADERBOARD_ADMIN_KEY` through the Terraform `admin_key` input (see [leaderboard setup](../leaderboard/README.md#deploy-to-azure-container-apps)); never share it with teams. **Download submissions** exports the selected event's runs including strategies after asking for this key.
 - Local fallback (laptop on the venue Wi-Fi): `python3 leaderboard/server.py` (port 8080).
-- Reset: use **Reset leaderboard**, confirm permanent deletion of every team's submissions, and enter the admin key. Download a backup first. No restart is needed; both controls are disabled without `LEADERBOARD_ADMIN_KEY`.
+- Reset: select the intended event, use **Reset leaderboard**, confirm permanent deletion of that event's submissions, and enter the admin key. Other events are unaffected and the empty container remains available. Download a backup first. All coach controls are disabled without `LEADERBOARD_ADMIN_KEY`.
 
 ---
 

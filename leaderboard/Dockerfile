@@ -3,7 +3,9 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=8080 \
     DATA_DIR=/app/data
 WORKDIR /app
-COPY server.py .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY server.py storage.py ./
 RUN useradd --create-home --uid 10001 tokenwars && mkdir -p /app/data && chown -R tokenwars /app
 USER tokenwars
 EXPOSE 8080

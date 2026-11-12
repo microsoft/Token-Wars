@@ -1,0 +1,12 @@
+subscription_id = "<coach-subscription-id>"
+location        = "spaincentral"
+
+# By default Terraform creates an ACR and builds ../../leaderboard with `az acr build` (no local Docker).
+# Only set these to use an image you already published elsewhere:
+# container_image       = "<registry>/tokenwars-leaderboard:<immutable-tag>"
+# container_registry_id = "/subscriptions/.../resourceGroups/.../providers/Microsoft.ContainerRegistry/registries/..."
+
+# Supply secrets via TF_VAR_admin_key / TF_VAR_initial_leaderboard_key, or a
+# private terraform.tfvars. Terraform state contains secrets: protect the state.
+# admin_key               = "<strong-coach-only-key-at-least-16-characters>"
+# initial_leaderboard_key = "<optional-first-event-key>"

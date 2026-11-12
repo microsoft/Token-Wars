@@ -1,30 +1,39 @@
 #!/usr/bin/env python3
-"""Token Wars leaderboard — Python standard library only.
+"""Token Wars leaderboard with persistent, key-scoped storage.
 
 Endpoints
   POST /api/submissions   submit a run summary (header x-submit-key if LEADERBOARD_SUBMIT_KEY is set)
   GET  /api/leaderboard   ranking: best VALID submission per team, lowest cost_per_success_usd first
   GET  /api/submissions   raw list of stored submissions (debugging)
   GET  /api/submissions/export  download all submissions, including strategies (x-admin-key)
-  POST /api/leaderboard/reset   permanently clear all submissions (x-admin-key)
+  POST /api/leaderboard/reset   clear the selected board (x-admin-key + x-submit-key)
+  GET  /api/leaderboards   list boards (public; the page loads them on open)
+  POST /api/leaderboards   create a board (x-admin-key)
   GET  /healthz           liveness probe
   GET  /                  auto-refreshing leaderboard page
 
 Environment
   PORT                    listen port (default 8080)
-  DATA_DIR                folder for submissions.json (default ./data)
-  LEADERBOARD_SUBMIT_KEY  optional shared secret required in the x-submit-key header
+  DATA_DIR                local development storage (default ./data)
+  LEADERBOARD_STORAGE_URL Blob service URL; when set, never fall back to local disk
+  LEADERBOARD_SUBMIT_KEY  optional initial board key, registered at startup
   LEADERBOARD_ADMIN_KEY   separate coach-only secret for export and reset (disabled if unset)
   MIN_PASS_RATE           validity gate (default 0.85)
   MIN_ITEMS               minimum number of workload items for a valid run (default 100)
 """
 import hmac
 import json
+import math
 import os
-import threading
 import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+from azure.core.exceptions import AzureError
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.storage.blob import BlobServiceClient
+
+from storage import BlobStore, BoardNotFound, LocalStore, StorageConflict
 
 PORT = int(os.environ.get("PORT", "8080"))
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.getcwd(), "data"))
@@ -33,28 +42,31 @@ ADMIN_KEY = os.environ.get("LEADERBOARD_ADMIN_KEY", "")
 MIN_PASS_RATE = float(os.environ.get("MIN_PASS_RATE", "0.85"))
 MIN_ITEMS = int(os.environ.get("MIN_ITEMS", "100"))
 MAX_BODY = 1_000_000
-DATA_FILE = os.path.join(DATA_DIR, "submissions.json")
+STORAGE_URL = os.environ.get("LEADERBOARD_STORAGE_URL", "")
 
-_lock = threading.Lock()
-
-
-# ----------------------------------------------------------------------------- storage
-def _load():
-    if not os.path.exists(DATA_FILE):
-        return []
-    with open(DATA_FILE, encoding="utf-8") as f:
-        return json.load(f)
+store = LocalStore(DATA_DIR)
 
 
-def _save(subs):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    tmp = DATA_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(subs, f, indent=1)
-    os.replace(tmp, DATA_FILE)
+def initialize_storage():
+    global store
+    if STORAGE_URL:
+        credential = (DefaultAzureCredential() if os.environ.get("LEADERBOARD_STORAGE_AUTH") == "local"
+                      else ManagedIdentityCredential(client_id=os.environ.get("AZURE_CLIENT_ID")))
+        store = BlobStore(BlobServiceClient(STORAGE_URL, credential=credential))
+    if SUBMIT_KEY:
+        if SUBMIT_KEY == ADMIN_KEY:
+            raise ValueError("The initial leaderboardKey must differ from LEADERBOARD_ADMIN_KEY")
+        store.create(validate_key(SUBMIT_KEY))
 
 
 # ----------------------------------------------------------------------------- domain
+def validate_key(key):
+    if not isinstance(key, str) or not key or len(key) > 128 or any(
+            not 33 <= ord(char) <= 126 for char in key):
+        raise ValueError("leaderboardKey must contain 1-128 printable ASCII characters without spaces")
+    return key
+
+
 def _num(d, key, default=0.0):
     v = d.get(key, default)
     try:
@@ -75,11 +87,24 @@ def validate_submission(body):
     summary = body.get("summary")
     if not isinstance(summary, dict):
         return None, "missing summary object"
+    for key in ("items", "successes", "pass_rate", "total_cost_usd", "cost_per_success_usd",
+                "input_tokens", "cached_input_tokens", "output_tokens", "cache_hits_exact",
+                "cache_hits_semantic", "escalations", "latency_p50_ms", "latency_p95_ms", "judge_cost_usd"):
+        if key not in summary:
+            continue
+        value = summary[key]
+        try:
+            if not math.isfinite(float(value)) or float(value) < 0:
+                return None, f"summary.{key} must be a finite non-negative number"
+        except (TypeError, ValueError, OverflowError):
+            return None, f"summary.{key} must be a finite non-negative number"
     for k in ("items", "pass_rate", "total_cost_usd", "cost_per_success_usd"):
         if k not in summary:
             return None, f"summary.{k} is required"
     items = int(_num(summary, "items"))
     pass_rate = _num(summary, "pass_rate")
+    if pass_rate > 1:
+        return None, "summary.pass_rate must be between 0 and 1"
     reasons = []
     if pass_rate < MIN_PASS_RATE:
         reasons.append(f"pass rate {pass_rate:.0%} below {MIN_PASS_RATE:.0%}")
@@ -207,64 +232,112 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        self._handle(self._get)
+
+    def do_POST(self):
+        self._handle(self._post)
+
+    def _handle(self, action):
+        try:
+            action()
+        except BoardNotFound:
+            self._send(404, {"error": "Unknown leaderboardKey. Ask the coach to create it first."})
+        except StorageConflict as exc:
+            self.log_error("Storage contention: %s", exc)
+            self._send(503, {"error": "Leaderboard is busy. Please retry."})
+        except (OSError, ValueError, KeyError, TypeError, AzureError) as exc:
+            self.log_error("Leaderboard storage operation failed: %s", exc)
+            self._send(500, {"error": "Could not access leaderboard storage. Check the server logs."})
+
+    def _selected_key(self):
+        key = self.headers.get("x-submit-key", "")
+        try:
+            return validate_key(key)
+        except ValueError:
+            self._send(401, {"accepted": False, "error": "invalid or missing x-submit-key"})
+            return None
+
+    def _body(self):
+        try:
+            body = json.loads(self._request_body.decode("utf-8"))
+            if not isinstance(body, dict):
+                raise ValueError()
+            return body
+        except (ValueError, UnicodeDecodeError):
+            self._send(400, {"accepted": False, "error": "invalid JSON or empty/too large body"})
+            return None
+
+    def _get(self):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             page = PAGE.replace("__ADMIN_ENABLED__", json.dumps(bool(ADMIN_KEY)))
             return self._send(200, page.encode("utf-8"), "text/html; charset=utf-8")
         if path == "/healthz":
             return self._send(200, {"status": "ok"})
+        if path == "/api/leaderboards":
+            return self._send(200, {"leaderboardKeys": store.list_keys()})
+        if path not in ("/api/leaderboard", "/api/submissions", "/api/submissions/export"):
+            return self._send(404, {"error": "not found"})
+        if path == "/api/submissions/export" and not self._authorize_admin():
+            return
+        key = self._selected_key()
+        if key is None:
+            return
+        subs = store.load(key)
         if path == "/api/leaderboard":
-            with _lock:
-                subs = _load()
             return self._send(200, build_leaderboard(subs))
         if path == "/api/submissions":
-            with _lock:
-                subs = _load()
             return self._send(200, [{k: v for k, v in s.items() if k != "strategy"} for s in subs])
         if path == "/api/submissions/export":
-            if not self._authorize_admin():
-                return
-            try:
-                with _lock:
-                    subs = _load()
-            except (OSError, ValueError) as exc:
-                self.log_error("Could not export submissions: %s", exc)
-                return self._send(500, {"error": "Could not read submissions. Check the server logs."})
             filename = datetime.now(timezone.utc).strftime("tokenwars-submissions-%Y%m%d-%H%M%S.json")
             return self._send(200, subs, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
-        return self._send(404, {"error": "not found"})
 
-    def do_POST(self):
+    def _post(self):
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._send(400, {"error": "invalid Content-Length"})
+        if length < 0 or length > MAX_BODY:
+            return self._send(400, {"error": "body too large or invalid Content-Length"})
+        # Consume bounded bodies before rejecting auth to avoid TCP resets on Windows.
+        self._request_body = self.rfile.read(length)
         path = self.path.split("?", 1)[0]
+        if path == "/api/leaderboards":
+            if not self._authorize_admin():
+                return
+            body = self._body()
+            if body is None:
+                return
+            try:
+                key = validate_key(body.get("leaderboardKey") if isinstance(body, dict) else None)
+                if key == ADMIN_KEY:
+                    raise ValueError("leaderboardKey must be different from the admin key")
+            except ValueError as exc:
+                return self._send(400, {"error": str(exc)})
+            created = store.create(key)
+            return self._send(201 if created else 409, {"created": created} if created else
+                              {"error": "That leaderboardKey already exists."})
         if path == "/api/leaderboard/reset":
             if not self._authorize_admin():
                 return
-            try:
-                with _lock:
-                    _save([])
-            except OSError as exc:
-                self.log_error("Could not reset leaderboard: %s", exc)
-                return self._send(500, {"error": "Could not reset leaderboard. Check the server logs."})
+            key = self._selected_key()
+            if key is None:
+                return
+            store.reset(key)
             return self._send(200, {"reset": True})
         if path != "/api/submissions":
             return self._send(404, {"error": "not found"})
-        if SUBMIT_KEY and self.headers.get("x-submit-key", "") != SUBMIT_KEY:
-            return self._send(401, {"accepted": False, "error": "invalid or missing x-submit-key"})
-        length = int(self.headers.get("Content-Length") or 0)
-        if length <= 0 or length > MAX_BODY:
-            return self._send(400, {"accepted": False, "error": "empty or too large body"})
-        try:
-            body = json.loads(self.rfile.read(length).decode("utf-8"))
-        except (ValueError, UnicodeDecodeError):
-            return self._send(400, {"accepted": False, "error": "invalid JSON"})
+        key = self._selected_key()
+        if key is None:
+            return
+        body = self._body()
+        if body is None:
+            return
         rec, err = validate_submission(body)
         if err:
             return self._send(400, {"accepted": False, "error": err})
-        with _lock:
-            subs = _load()
-            subs.append(rec)
-            _save(subs)
-            board = build_leaderboard(subs)
+        subs = store.append(key, rec)
+        board = build_leaderboard(subs)
         row = next((r for r in board["ranked"] if r["team"].lower() == rec["team"].lower()), None)
         msg = (f"Accepted. {rec['team']} is ranked #{row['rank']} of {len(board['ranked'])} "
                f"(best cost/success ${row['cost_per_success_usd']:.5f})." if row and rec["valid"] else
@@ -296,7 +369,9 @@ main{max-width:1280px;margin:12px auto 40px;padding:0 16px}
 .actions{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin:18px 0 8px}
 button{font:inherit;font-weight:600;color:var(--cyan);background:var(--panel);border:1px solid var(--cyan);border-radius:8px;padding:10px 16px;cursor:pointer}
 button.danger{color:var(--red);border-color:var(--red)}button:disabled{opacity:.45;cursor:not-allowed}
-button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.board-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+.board-controls input,.board-controls select{font:inherit;color:var(--txt);background:#0f0d22;border:1px solid var(--dim);border-radius:6px;padding:10px;max-width:100%}
 .action-status{min-height:1.5em;text-align:right;font-size:13px}
 dialog{color:var(--txt);background:#0f0d22;border:1px solid var(--cyan);border-radius:14px;padding:24px;max-width:440px;width:calc(100% - 32px)}
 dialog::backdrop{background:#000a}dialog h2{color:var(--cyan);margin:0 0 16px}
@@ -332,6 +407,11 @@ footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 30px}
  <div class="stat"><b id="s-impr">–</b><span>best improvement</span></div>
 </section>
 <main>
+ <div class="board-controls">
+  <label for="leaderboard-select">Leaderboard</label>
+  <select id="leaderboard-select" disabled><option value="">Select a leaderboard</option></select>
+  <button id="add-board" type="button">Add leaderboardKey</button>
+ </div>
  <div class="actions" aria-label="Leaderboard administration">
   <button id="download" type="button">Download submissions</button>
   <button id="reset" type="button" class="danger">Reset leaderboard</button>
@@ -346,6 +426,10 @@ footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 30px}
  <form id="admin-form">
   <h2 id="admin-title">Download submissions</h2>
   <p id="admin-description"></p>
+  <div id="new-key-field" hidden>
+   <label for="new-key">New leaderboardKey (share only with this event's participants)</label>
+   <input id="new-key" type="text" maxlength="128" autocomplete="off" spellcheck="false" autocapitalize="off">
+  </div>
   <label for="admin-key">Admin key</label>
   <input id="admin-key" type="password" required autocomplete="off" autofocus>
   <p id="admin-error" class="bad" role="alert"></p>
@@ -374,13 +458,8 @@ function row(r,invalid){
   <td>${r.submissions}</td><td>${impr}</td></tr>`;
 }
 let refreshVersion=0;
-async function refresh(){
-  const version=++refreshVersion;
-  try{
-    const response=await fetch('/api/leaderboard',{cache:'no-store'});
-    if(!response.ok)throw new Error('Could not refresh leaderboard.');
-    const d=await response.json();
-    if(version!==refreshVersion)return false;
+let selectedKey='';
+function renderBoard(d){
     document.getElementById('s-teams').textContent=d.teams;
     document.getElementById('s-subs').textContent=d.total_submissions;
     document.getElementById('s-best').textContent=d.ranked.length?usd(d.ranked[0].cost_per_success_usd,5):'–';
@@ -390,16 +469,35 @@ async function refresh(){
     document.getElementById('ranked').innerHTML=d.ranked.length?d.ranked.map(r=>row(r,false)).join(''):'<tr><td colspan="10" class="empty">Waiting for the first valid submission…</td></tr>';
     document.getElementById('inv-wrap').style.display=d.invalid.length?'block':'none';
     document.getElementById('invalid').innerHTML=d.invalid.map(r=>row(r,true)).join('');
+}
+async function refresh(){
+  const version=++refreshVersion;
+  if(!selectedKey){
+    document.getElementById('updated').textContent='select a leaderboard';
+    return false;
+  }
+  try{
+    const response=await fetch('/api/leaderboard',{headers:{'x-submit-key':selectedKey},cache:'no-store'});
+    if(!response.ok){
+      const error=await response.json();
+      throw new Error(error.error||'Could not refresh leaderboard.');
+    }
+    const d=await response.json();
+    if(version!==refreshVersion)return false;
+    renderBoard(d);
     document.getElementById('updated').textContent='updated '+new Date().toLocaleTimeString();
     return true;
   }catch(e){
-    if(version===refreshVersion)document.getElementById('updated').textContent='offline – retrying';
+    if(version===refreshVersion)document.getElementById('updated').textContent=e.message+' – retrying';
     return false;
   }
 }
 const adminEnabled=__ADMIN_ENABLED__;
 const downloadButton=document.getElementById('download');
 const resetButton=document.getElementById('reset');
+const addButton=document.getElementById('add-board');
+const boardSelect=document.getElementById('leaderboard-select');
+const newKey=document.getElementById('new-key');
 const adminDialog=document.getElementById('admin-dialog');
 const adminKey=document.getElementById('admin-key');
 const adminConfirm=document.getElementById('admin-confirm');
@@ -408,48 +506,119 @@ const adminError=document.getElementById('admin-error');
 const actionStatus=document.getElementById('action-status');
 let adminAction=null;
 let adminBusy=false;
+let actionBoard='';
+function updateControls(){
+  downloadButton.disabled=resetButton.disabled=!adminEnabled||adminBusy||!selectedKey;
+  addButton.disabled=!adminEnabled||adminBusy;
+  boardSelect.disabled=adminBusy||!boardSelect.options.length||!boardSelect.value;
+}
+const SELECTION_KEY='tokenwars.leaderboard';
+function rememberSelection(key){
+  try{key?sessionStorage.setItem(SELECTION_KEY,key):sessionStorage.removeItem(SELECTION_KEY);}catch{}
+}
+function rememberedSelection(){
+  try{return sessionStorage.getItem(SELECTION_KEY)||'';}catch{return '';}
+}
+function selectBoard(key){
+  selectedKey=key;
+  rememberSelection(key);
+  ++refreshVersion;
+  actionStatus.textContent='';
+  renderBoard({teams:0,total_submissions:0,ranked:[],invalid:[],min_pass_rate:0.85});
+  updateControls();
+  return refresh();
+}
+function addOption(key,label=key){
+  if(!Array.from(boardSelect.options).some(option=>option.value===key)){
+    boardSelect.add(new Option(label,key));
+  }
+}
+boardSelect.addEventListener('change',()=>selectBoard(boardSelect.value));
+async function loadBoards(){
+  try{
+    const response=await fetch('/api/leaderboards',{cache:'no-store'});
+    if(!response.ok){
+      const error=await response.json();
+      throw new Error(error.error||`Could not load leaderboards (${response.status}).`);
+    }
+    const keys=(await response.json()).leaderboardKeys;
+    if(!keys.length){
+      boardSelect.replaceChildren(new Option('No leaderboards yet',''));
+      await selectBoard('');
+      actionStatus.textContent='No leaderboards yet. Use Add leaderboardKey.';
+      return false;
+    }
+    boardSelect.replaceChildren();
+    keys.forEach(boardKey=>addOption(boardKey));
+    const saved=rememberedSelection();
+    const target=keys.includes(saved)?saved:keys[0];
+    boardSelect.value=target;
+    return selectBoard(target);
+  }catch(error){
+    actionStatus.textContent=error.message;
+    return false;
+  }
+}
 function showAdmin(action){
   adminAction=action;
+  actionBoard=selectedKey;
   const resetting=action==='reset';
-  document.getElementById('admin-title').textContent=resetting?'Reset leaderboard':'Download submissions';
-  document.getElementById('admin-description').textContent=resetting?
-    'Permanently delete ALL submissions and rankings for every team? This cannot be undone. Download a backup first.':
-    'Download all submissions as JSON, including strategies and valid and invalid runs.';
-  adminConfirm.textContent=resetting?'Confirm reset':'Download';
+  const creating=action==='create';
+  const titles={reset:'Reset leaderboard',download:'Download submissions',create:'Add leaderboardKey'};
+  document.getElementById('admin-title').textContent=titles[action];
+  document.getElementById('admin-description').textContent={
+    reset:'Permanently delete ALL submissions in the SELECTED leaderboard only? Other leaderboards are not affected. This cannot be undone. Download a backup first.',
+    download:'Download all submissions in the selected leaderboard as JSON, including strategies and valid and invalid runs.',
+    create:'Create an empty private container, ready for participant submissions. Existing leaderboards will not be changed.'
+  }[action];
+  document.getElementById('new-key-field').hidden=!creating;
+  newKey.required=creating;
+  newKey.value='';
+  adminConfirm.textContent=resetting?'Confirm reset':titles[action];
   adminConfirm.classList.toggle('danger',resetting);
   adminError.textContent='';
   adminKey.value='';
   adminDialog.showModal();
 }
-downloadButton.disabled=resetButton.disabled=!adminEnabled;
-if(!adminEnabled)actionStatus.textContent='Administration disabled: configure LEADERBOARD_ADMIN_KEY on the server.';
+updateControls();
 downloadButton.addEventListener('click',()=>showAdmin('download'));
 resetButton.addEventListener('click',()=>showAdmin('reset'));
+addButton.addEventListener('click',()=>showAdmin('create'));
 adminCancel.addEventListener('click',()=>adminDialog.close());
 adminDialog.addEventListener('cancel',event=>{if(adminBusy)event.preventDefault();});
-adminDialog.addEventListener('close',()=>{adminKey.value='';});
+adminDialog.addEventListener('close',()=>{adminKey.value='';newKey.value='';});
 document.getElementById('admin-form').addEventListener('submit',async event=>{
   event.preventDefault();
   if(adminBusy)return;
   adminBusy=true;
-  adminConfirm.disabled=adminCancel.disabled=adminKey.disabled=true;
-  downloadButton.disabled=resetButton.disabled=true;
+  adminConfirm.disabled=adminCancel.disabled=adminKey.disabled=newKey.disabled=true;
+  updateControls();
   adminError.textContent='';
   actionStatus.textContent='';
   const key=adminKey.value;
   adminKey.value='';
   try{
     const resetting=adminAction==='reset';
-    const response=await fetch(resetting?'/api/leaderboard/reset':'/api/submissions/export',{
-      method:resetting?'POST':'GET',headers:{'x-admin-key':key},cache:'no-store'
+    const creating=adminAction==='create';
+    const createdKey=newKey.value;
+    const response=await fetch(creating?'/api/leaderboards':resetting?'/api/leaderboard/reset':'/api/submissions/export',{
+      method:resetting||creating?'POST':'GET',
+      headers:{'x-admin-key':key,...(creating?{'Content-Type':'application/json'}:{'x-submit-key':actionBoard})},
+      ...(creating?{body:JSON.stringify({leaderboardKey:createdKey})}:{}),cache:'no-store'
     });
     if(!response.ok){
       const error=await response.json();
       throw new Error(error.error||`Request failed (${response.status}).`);
     }
-    if(resetting){
+    if(creating){
+      Array.from(boardSelect.options).filter(option=>!option.value).forEach(option=>option.remove());
+      addOption(createdKey);
+      boardSelect.value=createdKey;
+      const refreshed=await selectBoard(createdKey);
+      actionStatus.textContent=refreshed?'Leaderboard created and selected.':'Leaderboard created, but the page could not refresh.';
+    }else if(resetting){
       const refreshed=await refresh();
-      actionStatus.textContent=refreshed?'Leaderboard reset.':
+      actionStatus.textContent=refreshed?'Selected leaderboard reset.':
         'Leaderboard reset, but the page could not refresh. Reload the page.';
     }else{
       const blob=await response.blob();
@@ -469,20 +638,24 @@ document.getElementById('admin-form').addEventListener('submit',async event=>{
     adminError.textContent=error.message;
   }finally{
     adminBusy=false;
-    adminConfirm.disabled=adminCancel.disabled=adminKey.disabled=false;
-    downloadButton.disabled=resetButton.disabled=!adminEnabled;
+    adminConfirm.disabled=adminCancel.disabled=adminKey.disabled=newKey.disabled=false;
+    updateControls();
     if(adminDialog.open)adminKey.focus();
   }
 });
-refresh();setInterval(refresh,10000);
+loadBoards().then(()=>{
+  if(!adminEnabled)actionStatus.textContent='Administration disabled: configure LEADERBOARD_ADMIN_KEY on the server.';
+});
+setInterval(refresh,10000);
 </script></body></html>
 """
 
 
 def main():
-    os.makedirs(DATA_DIR, exist_ok=True)
+    initialize_storage()
     httpd = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    print(f"Token Wars leaderboard on http://0.0.0.0:{PORT}  (data: {DATA_FILE}, submit key: {'on' if SUBMIT_KEY else 'off'})", flush=True)
+    print(f"Token Wars leaderboard on http://0.0.0.0:{PORT}  "
+          f"(storage: {'Azure Blob' if STORAGE_URL else DATA_DIR})", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

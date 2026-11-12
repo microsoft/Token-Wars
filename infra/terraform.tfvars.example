@@ -15,7 +15,7 @@ location = "swedencentral"
 # Host in models.json: "foundry" = <name>.services.ai.azure.com (default), "openai" = <name>.openai.azure.com (fallback)
 # ai_endpoint_style = "foundry"
 
-# --- Leaderboard (values from your coach) -----------------------------------
+# --- Leaderboard (values from your coach; key must be registered before submitting) ---
 leaderboard_url = "https://tokenwars-leaderboard.orangesmoke-40cfa083.spaincentral.azurecontainerapps.io/"
 leaderboard_key = "tokenwars"
 

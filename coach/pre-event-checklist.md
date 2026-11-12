@@ -139,12 +139,12 @@ terraform output next_steps
 | T-7 d | "Own the Weights": coach subscription, region `swedencentral`, Foundry Owner role, fine-tuned Global Standard quota; deploy the Token Wars infra with `team_name = "coach"` ([own-the-weights/README.md](own-the-weights/README.md) section 5). | [ ] |
 | T-3 d | Check every team's A1–A4 status; help teams with quota or policy problems. | [ ] |
 | T-2 d | "Own the Weights": `generate_dataset.py --mock`, then the real run; review `manifest.json` and leakage rows. | [ ] |
-| T-1 d | **Deploy the leaderboard** ([coach-guide.md](coach-guide.md) section 8, `az containerapp up` + 1 replica); note URL + submit key; submit one real test run; reset the board. | [ ] |
+| T-1 d | **Deploy the persistent leaderboard** ([leaderboard/README.md](../leaderboard/README.md#deploy-to-azure-container-apps)); create an event with **Add leaderboardKey**, note URL + event key; submit one real test run; reset only the test board. | [ ] |
 | T-1 d | **"Own the Weights" training**: `finetune all` (train + deploy), `register_custom_model.py --write-pricing`, `doctor`, dry-run `compare --models balanced,premium,custom`, save the JSON as a backup slide. Hosting fee starts now. | [ ] |
 | T-1 d | Confirm every team ran A5 (`terraform apply` + `doctor`). | [ ] |
 | T-1 h | Leaderboard on the big screen, coach docs open, `custom` reachable in `doctor`. | [ ] |
 | Event | Announce at kickoff: Fireworks limitations and unverified prices; the `custom` demo model is not eligible for the leaderboard. | [ ] |
-| **After** | **Cost cleanup:** `finetune delete` + `finetune status` (no deployment → no hosting fee), `register_custom_model.py --remove --write-pricing`, `git checkout shared/config/pricing.json`; export results (`GET /api/submissions`) and delete the leaderboard app; `terraform destroy` in the coach subscription; remind teams to `terraform destroy`. | [ ] |
+| **After** | **Cost cleanup:** `finetune delete` + `finetune status` (no deployment → no hosting fee), `register_custom_model.py --remove --write-pricing`, `git checkout shared/config/pricing.json`; download the selected leaderboard's results (deleting its resource group or running `terraform destroy` in `infra/leaderboard` deletes all boards); `terraform destroy` in the coach model stack; remind teams to `terraform destroy`. | [ ] |
 | After +1 d | Check Cost Management in the coach subscription for anything still billing (APIM, Container Apps, fine-tuned deployment). | [ ] |
 
 ---

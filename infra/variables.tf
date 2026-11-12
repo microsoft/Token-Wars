@@ -454,7 +454,7 @@ variable "leaderboard_url" {
 }
 
 variable "leaderboard_key" {
-  description = "Shared leaderboard submit key provided by your coach (optional)."
+  description = "Event leaderboardKey registered by your coach. Required when submitting to leaderboard_url."
   type        = string
   default     = ""
   sensitive   = true

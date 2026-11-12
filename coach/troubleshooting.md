@@ -145,5 +145,5 @@ Only for teams whose gateway the coach created with [infra/shared](../infra/shar
 | `TODO 1.2 not implemented yet – see ...` | Expected in the starter when a flag is on but the TODO is not implemented. Implement it or turn the flag off. |
 | `models.json` missing | Run `terraform apply`, or copy `shared/config/models.example.json` to `models.json` and fill in endpoints/keys manually. |
 | Everything offline / no Azure | `--mock` or `TOKENWARS_MOCK=1` (no HTTP; leaderboard rejects mock runs). |
-| Leaderboard submit fails with 401 | `TOKENWARS_LEADERBOARD_KEY` wrong; 400 = mock run or missing team name (`TOKENWARS_TEAM`). |
+| Leaderboard submit fails | 401 = missing/malformed `TOKENWARS_LEADERBOARD_KEY`; 404 = unregistered key (coach must use **Add leaderboardKey** first); 400 = mock/malformed run or missing team name (`TOKENWARS_TEAM`); 500/503 = storage failure/contention, check server logs and retry. |
 | Corporate proxy / TLS inspection | Python: set `REQUESTS_CA_BUNDLE`; .NET: trust the proxy root CA in the OS store. |
