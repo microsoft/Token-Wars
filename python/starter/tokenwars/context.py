@@ -105,8 +105,10 @@ class ContextBuilder:
         self.orders = load_orders(root)
         self.full_kb = "\n\n".join(doc.content for doc in self.docs)
         self.embeddings_file = embeddings_file  # for the embedding-retrieval stretch goal
-        # The unique search terms of every section (same order as self.sections) – handy for TODO 1.2.
-        self.section_terms = [set(tokenize(section.text)) for section in self.sections]
+        # The unique search terms of every section (same order as self.sections).
+        self._section_terms = [set(tokenize(section.text)) for section in self.sections]
+        self.section_terms = self._section_terms
+        self._idf = self._build_idf()
 
     # ------------------------------------------------------------------ knowledge base
 
@@ -130,8 +132,22 @@ class ContextBuilder:
     #   4. take the top_k highest scores (ties keep the original section order – sort by (-score, index))
     #   5. return the section texts (self.sections[i].text) joined with SECTION_SEPARATOR
     # Then set "retrieval": "keyword" in strategy.json.
+    def _build_idf(self) -> dict[str, float]:
+        n = len(self.sections)
+        df: dict[str, int] = {}
+        for terms in self._section_terms:
+            for term in terms:
+                df[term] = df.get(term, 0) + 1
+        return {term: math.log(1 + n / count) for term, count in df.items()}
+
     def keyword_retrieval(self, question: str, top_k: int) -> str:
-        raise NotImplementedError("TODO 1.2 not implemented yet – see tokenwars/context.py")
+        query_terms = set(tokenize(question))
+        scored = []
+        for index, terms in enumerate(self._section_terms):
+            score = sum(self._idf[term] for term in query_terms if term in terms)
+            scored.append((-score, index))
+        scored.sort()
+        return SECTION_SEPARATOR.join(self.sections[index].text for _, index in scored[:top_k])
 
     # STRETCH GOAL – embedding retrieval (retrieval="embedding"; optional)
     # Embed all section texts once with self.client.embed("embedding", texts) (batch them and append each result to
