@@ -43,14 +43,16 @@ cost_per_success_usd = total_cost_usd / max(successes, 1)
 
 ## Decision routing and verification
 
-Optional TODOs 3.2b/3.3b do not change the judge, pass threshold or ranking. Microsoft-Decision-1 is always deployed,
+Optional TODOs 3.2b/3.3b do not change the judge, pass threshold or ranking. Microsoft-Decision-1.1 is always deployed,
 but it is only called when the strategy enables it (or by `doctor`). Its native `usage.input_tokens` and
 `usage.output_tokens` are normalized into the existing call accounting, with no invented cache discount.
 Routing, accepted/rejected verification and any later answer-model calls all count toward the team's total.
 `decision_calls` is an audit trail, not extra answer-model hops in `model_path`.
 
-The USD 0.042/1M-token Sweden Central Retail Prices API snapshot is marked `verified: false` until the coach
-confirms the event deployment/SKU rate. Freeze the same price for every team. Missing/invalid prices fail before
+Decision 1.1 uses one token meter per SKU (Azure Retail Prices API, checked 2026-11-25): `microsoft-decision-1.1-dz-eu`
+(DataZoneStandard, the Terraform default, USD 0.05/1M in EU regions) and `microsoft-decision-1.1` (GlobalStandard,
+USD 0.042/1M). Terraform selects the key from `decision_model.sku`; confirm it matches the event deployment.
+Freeze the same price for every team. Missing/invalid prices fail before
 spending; missing usage aborts the run rather than producing an artificially cheap submission. Invalid decisions
 with known usage fail the item and still cost money. Neither Decision feature may read judge-only workload fields.
 Use full `run` executions to compare strategies: `compare` intentionally disables routing and verification.

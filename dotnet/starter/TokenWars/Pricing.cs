@@ -25,6 +25,8 @@ public sealed class PricingTable
     public static PricingTable BuiltIn() => new("USD", new Dictionary<string, PriceEntry>(StringComparer.Ordinal)
     {
         ["gpt-5.5"] = new PriceEntry(5.00, 0.50, 30.00),
+        ["microsoft-decision-1.1-dz-eu"] = new PriceEntry(0.05, 0.05, 0.05),
+        ["microsoft-decision-1.1"] = new PriceEntry(0.042, 0.042, 0.042),
         ["microsoft-decision-1"] = new PriceEntry(0.042, 0.042, 0.042),
         ["gpt-5.6-sol"] = new PriceEntry(4.00, 0.50, 20.00),
         ["gpt-5.6-terra"] = new PriceEntry(2.00, 0.20, 12.00),

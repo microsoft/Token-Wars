@@ -269,7 +269,7 @@ resource "azurerm_api_management_api_operation" "decisions" {
   display_name        = "Typed decisions"
   method              = "POST"
   url_template        = "/v1/decisions"
-  description         = "Microsoft-Decision-1 choice/noul requests, forwarded to the native systemone API."
+  description         = "Microsoft-Decision-1.1 choice/noul requests, forwarded to the native systemone API."
 }
 
 resource "azurerm_api_management_api_operation" "models" {

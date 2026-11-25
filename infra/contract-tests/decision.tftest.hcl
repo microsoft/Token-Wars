@@ -20,16 +20,16 @@ run "decision_is_required_and_gateway_routed" {
     error_message = "The deployment and registry must use the neutral name 'decision', not the reserved publisher name."
   }
   assert {
-    condition     = azurerm_cognitive_deployment.decision.model[0].name == "Microsoft-Decision-1" && azurerm_cognitive_deployment.decision.model[0].format == "Microsoft"
-    error_message = "Decision-1 must deploy even when optional model deployments are disabled."
+    condition     = azurerm_cognitive_deployment.decision.model[0].name == "Microsoft-Decision-1.1" && azurerm_cognitive_deployment.decision.model[0].format == "Microsoft"
+    error_message = "Decision-1.1 must deploy even when optional model deployments are disabled."
   }
   assert {
     condition     = azurerm_cognitive_deployment.decision.model[0].version == "1" && azurerm_cognitive_deployment.decision.sku[0].name == var.decision_model.sku && contains(["GlobalStandard", "DataZoneStandard"], var.decision_model.sku)
     error_message = "The required Decision deployment must use the documented model version and pay-per-token SKU."
   }
   assert {
-    condition     = local.all_models.decision.type == "decision" && local.all_models.decision.via_gateway && local.all_models.decision.pricing_key == "microsoft-decision-1"
-    error_message = "The generated registry must include a priced, gateway-only decision entry."
+    condition     = local.all_models.decision.type == "decision" && local.all_models.decision.via_gateway && local.all_models.decision.pricing_key == "microsoft-decision-1.1-dz-eu"
+    error_message = "The generated registry must include a priced, gateway-only decision entry (DataZoneStandard by default)."
   }
   assert {
     condition     = azurerm_api_management_api_operation.decisions[0].url_template == "/v1/decisions"
@@ -45,11 +45,34 @@ run "decision_is_required_and_gateway_routed" {
   }
 }
 
+run "decision_global_sku_uses_global_price" {
+  command = plan
+
+  variables {
+    decision_model = { sku = "GlobalStandard" }
+  }
+
+  assert {
+    condition     = local.all_models.decision.pricing_key == "microsoft-decision-1.1"
+    error_message = "GlobalStandard Decision deployments must use the global pricing key."
+  }
+}
+
 run "decision_rejects_lowercase_catalog_name" {
   command = plan
 
   variables {
-    decision_model = { name = "microsoft-decision-1" }
+    decision_model = { name = "microsoft-decision-1.1" }
+  }
+
+  expect_failures = [var.decision_model]
+}
+
+run "decision_rejects_deprecated_v1" {
+  command = plan
+
+  variables {
+    decision_model = { name = "Microsoft-Decision-1" }
   }
 
   expect_failures = [var.decision_model]

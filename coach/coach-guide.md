@@ -168,7 +168,7 @@ Never let a team start the Fireworks opt-in or deployment during Challenge 2: up
   Remind: routing on `category`/`difficulty` from the workload = disqualification.
 - **3.3 Escalation**: cheap model answers or says `ESCALATE` → next tier. Measure escalation rate; too many
   escalations = paying twice.
-- **3.2b Routing with Decision (optional):** the required Microsoft-Decision-1 deployment returns typed choices
+- **3.2b Routing with Decision (optional):** the required Microsoft-Decision-1.1 deployment returns typed choices
   and probabilities. Use `routing: "decision"`; below `decision_threshold` (initially 0.8), route to premium.
   Compare full runs against rules and the economy classifier; fewer output tokens do not guarantee lower cost per success.
 - **3.3b Verify before escalating (optional, requires 3.3):** set `verify_answers: true`. Check each non-premium

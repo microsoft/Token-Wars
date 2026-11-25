@@ -573,7 +573,7 @@ public sealed class AppConfig
     private const string BuiltInMockModels = """
     {
       "models": {
-        "decision": {"deployment": "decision", "pricing_key": "microsoft-decision-1", "type": "decision", "via_gateway": true},
+        "decision": {"deployment": "decision", "pricing_key": "microsoft-decision-1.1-dz-eu", "type": "decision", "via_gateway": true},
         "premium":  {"deployment": "gpt-5.6-sol", "base_url": "https://mock.invalid/openai/v1/", "api_key_env": "AZURE_AI_API_KEY", "pricing_key": "gpt-5.6-sol", "type": "chat", "via_gateway": true, "max_tokens_param": "max_completion_tokens", "supports_temperature": false, "extra_body": {"reasoning_effort": "none"}},
         "balanced":      {"deployment": "gpt-5.6-terra", "base_url": "https://mock.invalid/openai/v1/", "api_key_env": "AZURE_AI_API_KEY", "pricing_key": "gpt-5.6-terra", "type": "chat", "via_gateway": true, "max_tokens_param": "max_completion_tokens", "supports_temperature": false, "extra_body": {"reasoning_effort": "none"}},
         "economy":      {"deployment": "gpt-5.6-luna", "base_url": "https://mock.invalid/openai/v1/", "api_key_env": "AZURE_AI_API_KEY", "pricing_key": "gpt-5.6-luna", "type": "chat", "via_gateway": true, "max_tokens_param": "max_completion_tokens", "supports_temperature": false, "extra_body": {"reasoning_effort": "none"}},

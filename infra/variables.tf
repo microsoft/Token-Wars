@@ -135,22 +135,23 @@ variable "economy_model" {
 }
 
 # The catalog model name is case-sensitive; the lowercase pricing key is not a model identifier.
-# Verify availability: az cognitiveservices model list --location <region> --query "[?model.name=='Microsoft-Decision-1']" -o json
+# Microsoft-Decision-1 is deprecated; Microsoft-Decision-1.1 keeps catalog version "1" and the same /systemone API.
+# Verify availability: az cognitiveservices model list --location <region> --query "[?model.name=='Microsoft-Decision-1.1']" -o json
 variable "decision_model" {
-  description = "Required Microsoft-Decision-1 catalog model, deployed under the resource name 'decision' to avoid reserved words. The routing/verification exercises are optional, not this deployment. Check model-specific quota units before raising capacity."
+  description = "Required Microsoft-Decision-1.1 catalog model, deployed under the resource name 'decision' to avoid reserved words. The routing/verification exercises are optional, not this deployment. Check model-specific quota units before raising capacity. pricing_key defaults by SKU: GlobalStandard = microsoft-decision-1.1, DataZoneStandard = microsoft-decision-1.1-dz-eu."
   type = object({
-    name        = optional(string, "Microsoft-Decision-1")
+    name        = optional(string, "Microsoft-Decision-1.1")
     version     = optional(string, "1")
     format      = optional(string, "Microsoft")
     sku         = optional(string, "DataZoneStandard")
     capacity    = optional(number, 50)
-    pricing_key = optional(string, "microsoft-decision-1")
+    pricing_key = optional(string)
   })
   default = {}
 
   validation {
-    condition     = var.decision_model.name == "Microsoft-Decision-1" && var.decision_model.format == "Microsoft"
-    error_message = "Decision requires the exact catalog model name 'Microsoft-Decision-1' and format 'Microsoft'. The lowercase 'microsoft-decision-1' is a pricing key, not the catalog model name."
+    condition     = var.decision_model.name == "Microsoft-Decision-1.1" && var.decision_model.format == "Microsoft"
+    error_message = "Decision requires the exact catalog model name 'Microsoft-Decision-1.1' and format 'Microsoft' (Microsoft-Decision-1 is deprecated). The lowercase 'microsoft-decision-1.1' is a pricing key, not the catalog model name."
   }
   validation {
     condition     = var.decision_model.capacity >= 1 && floor(var.decision_model.capacity) == var.decision_model.capacity

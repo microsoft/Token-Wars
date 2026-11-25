@@ -34,9 +34,11 @@ leaderboard_key = "tokenwars"
 # balanced_model  = { capacity = 800 }
 # economy_model   = { capacity = 800 }
 # judge_model     = { capacity = 800 }   # separate GPT-5.5 deployment; not the balanced answer model
-# decision_model  = { capacity = 50 }     # REQUIRED Microsoft-Decision-1 version 1; check its own quota units
+# decision_model  = { capacity = 50 }     # REQUIRED Microsoft-Decision-1.1 version 1; check its own quota units
 # Decision deployment is unconditional, even when optional TODOs 3.2b/3.3b are disabled.
 # It uses the native Decision API through APIM, not chat/completions, and stays on the primary resource.
+# Pricing follows the SKU: DataZoneStandard (default) = microsoft-decision-1.1-dz-eu, GlobalStandard = microsoft-decision-1.1.
+# decision_model  = { sku = "GlobalStandard" }   # cheaper global meter; inference may run in any region
 # embedding_model = { sku = "Standard", capacity = 150 }   # if GlobalStandard is not offered for embeddings
 # open_model      = { name = "Llama-3.3-70B-Instruct", format = "Meta", capacity = 100 }
 # deploy_open_model = true

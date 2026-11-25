@@ -73,12 +73,15 @@ Coach automation should also use `--premium-key` / `--balanced-key` for the brea
 
 ## Optional Decision exercises (required deployment)
 
-Terraform **always deploys Microsoft-Decision-1** (publisher `Microsoft`, version `1`) under the deployment name
-`decision` on the primary Foundry resource. The catalog model name and deployment resource name are distinct:
-using `Microsoft-Decision-1` as the resource name fails Azure's reserved-word validation. Configure its SKU and
+Terraform **always deploys Microsoft-Decision-1.1** (publisher `Microsoft`, catalog version `1`) under the deployment name
+`decision` on the primary Foundry resource. Microsoft-Decision-1 is deprecated; 1.1 keeps the same `/systemone` API and
+request/response contract. The catalog model name and deployment resource name are distinct:
+using `Microsoft-Decision-1.1` as the resource name fails Azure's reserved-word validation. Configure its SKU and
 capacity through `decision_model` and check availability/quota units before setup. There is no
 `deploy_decision` switch: only the exercises are optional. Existing teams must run `terraform apply` to add the
 deployment, gateway operation and regenerated registry; shared teams receive updated files from their coach.
+Upgrading an existing Microsoft-Decision-1 deployment replaces it in place (same `decision` name), so apply between
+runs rather than during one.
 
 | Exercise | Enable after implementing the starter TODO | Behavior |
 |---|---|---|
@@ -102,8 +105,10 @@ Decision input/output usage is included in `calls_by_model.decision` and the tea
 calls that reject an answer. Each item's `decision_calls` records probabilities and outcomes separately from
 `model_path` (which still counts answer-model escalation hops only). Invalid decisions fail visibly; missing usage
 aborts the run rather than producing an underpriced submission. A missing/invalid price fails before spending.
-The USD 0.042/1M-token retail snapshot in `pricing.json` has no cache discount and remains `verified: false` until
-the coach confirms the event's deployment/SKU price.
+Decision 1.1 bills one token meter per SKU, with no cache discount: `microsoft-decision-1.1-dz-eu` (DataZoneStandard,
+the Terraform default, USD 0.05/1M in EU regions) or `microsoft-decision-1.1` (GlobalStandard, USD 0.042/1M).
+Terraform picks the pricing key from `decision_model.sku`; override `decision_model.pricing_key` for other data zones
+(US data zones are USD 0.046/1M). Prices were checked against the Azure Retail Prices API on 2026-11-25.
 
 Compare **full `run` executions**, keeping prompts, retrieval, caches and the judge fixed: rules vs classifier vs
 decision, then verification off vs on. `compare` intentionally disables routing and verification. Report cost per

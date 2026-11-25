@@ -107,7 +107,7 @@ class AppTests:
             (root / "shared" / "config" / "models.json").write_text(json.dumps(registry))
             pricing = json.loads((ROOT / "shared" / "config" / "pricing.json").read_text())
             if missing_price:
-                del pricing["models"]["microsoft-decision-1"]
+                del pricing["models"][registry["models"]["decision"]["pricing_key"]]
             (root / "shared" / "config" / "pricing.json").write_text(json.dumps(pricing))
             (root / "shared" / "knowledge-base" / "returns.md").write_text("# Returns\n## Window\nReturns: 30 days.\n")
             (root / "shared" / "prompts" / "system-baseline.md").write_text(
@@ -283,7 +283,7 @@ class GuideTests(unittest.TestCase):
         model = nodes["models-decision"]
         self.assertIn(model, list(nodes["model-layer"]))
         model_text = " ".join(model.itertext())
-        self.assertIn("Microsoft-Decision-1", model_text)
+        self.assertIn("Microsoft-Decision-1.1", model_text)
         self.assertIn("Required model", model_text)
         self.assertIn("deployment: decision", model_text)
         for node_id, todo in (("decision-routing", "3.2b"), ("decision-verification", "3.3b")):

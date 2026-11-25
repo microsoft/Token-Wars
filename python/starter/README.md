@@ -133,7 +133,7 @@ spending anything, with `NotImplementedError: TODO x.y not implemented yet – s
 
 To find every task, search for `TODO` in `tokenwars/`.
 
-Microsoft-Decision-1 is **always deployed** by Terraform; the optional exercises remain disabled until implemented.
+Microsoft-Decision-1.1 is **always deployed** by Terraform; the optional exercises remain disabled until implemented.
 The HTTP adapter, typed response readers, usage accounting and APIM operation are provided. Use
 `decision_threshold` (default `0.8`) for routing fallback and verification acceptance. Explicit `ESCALATE`, empty
 answers and premium skip verification; cache hits skip both features. `run` compares strategies; `compare` disables

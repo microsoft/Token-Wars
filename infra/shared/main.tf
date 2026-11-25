@@ -58,7 +58,7 @@ resource "terraform_data" "validate" {
   lifecycle {
     precondition {
       condition     = contains(keys(local.coach.models), "decision")
-      error_message = "The coach stack must deploy Microsoft-Decision-1 first. Run terraform apply in infra/ before creating team gateways."
+      error_message = "The coach stack must deploy Microsoft-Decision-1.1 first. Run terraform apply in infra/ before creating team gateways."
     }
     precondition {
       condition     = length(local.unsupported_extra_models) == 0

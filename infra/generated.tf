@@ -71,12 +71,18 @@ locals {
     } if local.fireworks_enabled
   }
 
+  # Decision 1.1 bills GlobalStandard and DataZoneStandard on separate meters (EU data zone rate by default).
+  decision_pricing_key = coalesce(
+    var.decision_model.pricing_key,
+    var.decision_model.sku == "GlobalStandard" ? "microsoft-decision-1.1" : "microsoft-decision-1.1-dz-eu"
+  )
+
   decision_models = {
     decision = {
       deployment           = azurerm_cognitive_deployment.decision.name
       base_url             = "https://${azurerm_cognitive_account.ai.custom_subdomain_name}.services.ai.azure.com/providers/microsoft/v1/"
       api_key_env          = "AZURE_AI_API_KEY"
-      pricing_key          = var.decision_model.pricing_key
+      pricing_key          = local.decision_pricing_key
       type                 = "decision"
       via_gateway          = true
       supports_temperature = false

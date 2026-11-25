@@ -39,7 +39,7 @@
 
 ## Prerequisites (coach)
 
-Microsoft-Decision-1 is a **required deployment in the coach stack**, even when optional participant TODOs 3.2b
+Microsoft-Decision-1.1 is a **required deployment in the coach stack**, even when optional participant TODOs 3.2b
 (routing) and 3.3b (verification) are disabled. Reapply `infra/` before updating team gateways. Each gateway exposes
 `POST /openai/v1/decisions`, rewrites it to the native primary Foundry `/providers/microsoft/v1/systemone` API and
 uses managed identity. The registry retains `type: "decision"`; the model cannot generate answers or use chat

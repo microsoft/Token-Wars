@@ -106,7 +106,7 @@ If you switch on a flag whose TODO is not implemented yet, the app stops **befor
 
 ## Rules of the game
 
-Microsoft-Decision-1 is **always deployed** by Terraform; the optional exercises remain disabled until implemented.
+Microsoft-Decision-1.1 is **always deployed** by Terraform; the optional exercises remain disabled until implemented.
 `Decision.cs` provides typed requests/readers, mocks and accounting. `decision_threshold` defaults to `0.8` for
 routing fallback and verification acceptance. Explicit `ESCALATE`, empty answers and premium skip verification;
 cache hits skip both features. `run` compares strategies; `compare` disables both features and excludes Decision
