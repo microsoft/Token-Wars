@@ -10,6 +10,7 @@ from azure.core.exceptions import ResourceExistsError, ResourceModifiedError, Re
 from azure.storage.blob import ContentSettings
 
 PREFIX = "twlb-"
+OPEN_METADATA = "submissions_open"
 
 
 def container_name(key):
@@ -41,11 +42,12 @@ class LocalStore:
         except FileNotFoundError as exc:
             raise BoardNotFound() from exc
 
-    def _write(self, key, records):
+    def _write(self, key, records, submissions_open=True):
         os.makedirs(self.directory, exist_ok=True)
         path = self._path(key)
         with open(path + ".tmp", "w", encoding="utf-8") as file:
-            json.dump({"key": key, "submissions": records}, file, allow_nan=False)
+            json.dump({"key": key, "submissions": records, OPEN_METADATA: submissions_open},
+                      file, allow_nan=False)
         os.replace(path + ".tmp", path)
 
     def create(self, key):
@@ -72,15 +74,23 @@ class LocalStore:
 
     def append(self, key, record):
         with self.lock:
-            records = self.load(key)
-            records.append(record)
-            self._write(key, records)
+            data = self._read(key)
+            records = data["submissions"] + [record]
+            self._write(key, records, data.get(OPEN_METADATA, True))
             return records
 
     def reset(self, key):
         with self.lock:
-            self._read(key)
-            self._write(key, [])
+            data = self._read(key)
+            self._write(key, [], data.get(OPEN_METADATA, True))
+
+    def is_open(self, key):
+        with self.lock:
+            return self._read(key).get(OPEN_METADATA, True)
+
+    def set_open(self, key, submissions_open):
+        with self.lock:
+            self._write(key, self._read(key)["submissions"], bool(submissions_open))
 
 
 class BlobStore:
@@ -106,12 +116,25 @@ class BlobStore:
             keys.append(key)
         return sorted(keys)
 
-    def _read(self, key):
+    def _container(self, key):
         container = self.service.get_container_client(container_name(key))
         try:
-            container.get_container_properties()
+            return container, container.get_container_properties()
         except ResourceNotFoundError as exc:
             raise BoardNotFound() from exc
+
+    def is_open(self, key):
+        # Missing metadata means "open" so boards created before this flag keep accepting runs.
+        return (self._container(key)[1].metadata or {}).get(OPEN_METADATA) != "false"
+
+    def set_open(self, key, submissions_open):
+        container, properties = self._container(key)
+        metadata = dict(properties.metadata or {})
+        metadata[OPEN_METADATA] = "true" if submissions_open else "false"
+        container.set_container_metadata(metadata)
+
+    def _read(self, key):
+        container = self._container(key)[0]
         blob = container.get_blob_client("submissions.json")
         try:
             download = blob.download_blob()

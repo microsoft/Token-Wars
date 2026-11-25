@@ -46,6 +46,20 @@ class BlobFailureTests(unittest.TestCase):
             self.assertTrue(all(call.kwargs["overwrite"] is False
                                 for call in blob.upload_blob.call_args_list))
 
+    def test_open_state_lives_in_container_metadata_and_defaults_to_open(self):
+        container = Mock()
+        container.get_container_properties.return_value = Mock(metadata={"leaderboard_key": "ZXZlbnQ="})
+        service = Mock()
+        service.get_container_client.return_value = container
+        store = BlobStore(service)
+        self.assertTrue(store.is_open("event"))
+        store.set_open("event", False)
+        container.set_container_metadata.assert_called_once_with(
+            {"leaderboard_key": "ZXZlbnQ=", "submissions_open": "false"})
+        container.get_container_properties.return_value = Mock(
+            metadata={"leaderboard_key": "ZXZlbnQ=", "submissions_open": "false"})
+        self.assertFalse(store.is_open("event"))
+
 
 @unittest.skipUnless(os.environ.get("TOKENWARS_TEST_BLOB_CONNECTION_STRING"),
                      "Set TOKENWARS_TEST_BLOB_CONNECTION_STRING to an isolated Azurite endpoint")
@@ -75,10 +89,14 @@ class BlobPersistenceTests(unittest.TestCase):
         self.assertIn(self.other, restarted.list_keys())
 
     def test_scoped_reset_survives_restart_and_keeps_empty_container(self):
+        self.store.set_open(self.key, False)
         self.store.append(self.key, {"id": "one"})
         self.store.append(self.other, {"id": "two"})
         self.store.reset(self.key)
         restarted = BlobStore(self.service)
+        self.assertFalse(restarted.is_open(self.key))
+        self.assertTrue(restarted.is_open(self.other))
+        self.assertIn(self.key, restarted.list_keys())
         self.assertEqual(restarted.load(self.key), [])
         self.assertEqual(restarted.load(self.other), [{"id": "two"}])
         self.assertFalse(restarted.create(self.key))

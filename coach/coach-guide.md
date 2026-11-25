@@ -350,6 +350,7 @@ yet — record them during the T-7 dry run. If a Fireworks model emits reasoning
 - Configure a separate coach-only `LEADERBOARD_ADMIN_KEY` through the Terraform `admin_key` input (see [leaderboard setup](../leaderboard/README.md#deploy-to-azure-container-apps)); never share it with teams. **Download submissions** exports the selected event's runs including strategies after asking for this key.
 - Local fallback (laptop on the venue Wi-Fi): `python3 leaderboard/server.py` (port 8080).
 - Reset: select the intended event, use **Reset leaderboard**, confirm permanent deletion of that event's submissions, and enter the admin key. Other events are unaffected and the empty container remains available. Download a backup first. All coach controls are disabled without `LEADERBOARD_ADMIN_KEY`.
+- Control when teams can submit: select the event and use **Stop submissions** / **Start submissions** (admin key required). While stopped, the page shows **Submissions closed — wait for your coach** and participants' `--submit` is refused (HTTP 423) with a message asking them to wait until you tell them it is open. Results already submitted stay on the board.
 
 ---
 

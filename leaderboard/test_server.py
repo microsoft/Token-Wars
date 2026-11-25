@@ -139,6 +139,36 @@ class LeaderboardTests(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(len(self.load()), 1)
 
+    def test_coach_can_stop_and_start_submissions_per_board(self):
+        other = "another-event"
+        self.create_board(other)
+        self.submit()
+        self.assertTrue(self.request("GET", "/api/leaderboard")[2]["submissions_open"])
+        for path in ("/api/leaderboard/stop", "/api/leaderboard/start"):
+            for headers in ({"x-submit-key": server.SUBMIT_KEY},
+                            {"x-admin-key": "wrong", "x-submit-key": server.SUBMIT_KEY}):
+                self.assertEqual(self.request("POST", path, headers=headers)[0], 401)
+            self.assertEqual(self.request("GET", path)[0], 404)
+        self.assertTrue(server.store.is_open(server.SUBMIT_KEY))
+
+        status, _, result = self.admin_request("POST", "/api/leaderboard/stop")
+        self.assertEqual((status, result), (200, {"submissions_open": False}))
+        status, _, result = self.request("POST", "/api/submissions", {
+            "team": "Late team", "summary": {"items": 100, "pass_rate": 0.9,
+                                           "total_cost_usd": 1, "cost_per_success_usd": 0.01}})
+        self.assertEqual(status, 423)
+        self.assertFalse(result["accepted"])
+        self.assertIn("wait until your coach", result["error"])
+        self.assertEqual(len(self.load()), 1)
+        self.assertFalse(self.request("GET", "/api/leaderboard")[2]["submissions_open"])
+        self.submit(team="Other board", key=other)
+
+        self.admin_request("POST", "/api/leaderboard/reset")
+        self.assertFalse(LocalStore(self.data.name).is_open(server.SUBMIT_KEY))
+        status, _, result = self.admin_request("POST", "/api/leaderboard/start")
+        self.assertEqual((status, result), (200, {"submissions_open": True}))
+        self.assertEqual(self.submit(team="Late team")["rank"], 1)
+
     def test_storage_failures_report_errors_without_claiming_success(self):
         self.submit()
         before = self.load()
@@ -173,6 +203,9 @@ class LeaderboardTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn('id="download"', page)
             self.assertIn('id="reset"', page)
+            self.assertIn('id="start"', page)
+            self.assertIn('id="stop"', page)
+            self.assertIn('id="submission-state"', page)
             self.assertIn('<input id="admin-key" type="password"', page)
             self.assertIn('<input id="new-key" type="text"', page)
             self.assertIn("const adminEnabled=true;", page)

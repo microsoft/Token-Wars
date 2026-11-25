@@ -7,6 +7,8 @@ Endpoints
   GET  /api/submissions   raw list of stored submissions (debugging)
   GET  /api/submissions/export  download all submissions, including strategies (x-admin-key)
   POST /api/leaderboard/reset   clear the selected board (x-admin-key + x-submit-key)
+  POST /api/leaderboard/start   accept submissions on the selected board (x-admin-key + x-submit-key)
+  POST /api/leaderboard/stop    refuse submissions on the selected board (x-admin-key + x-submit-key)
   GET  /api/leaderboards   list boards (public; the page loads them on open)
   POST /api/leaderboards   create a board (x-admin-key)
   GET  /healthz           liveness probe
@@ -43,6 +45,8 @@ MIN_PASS_RATE = float(os.environ.get("MIN_PASS_RATE", "0.85"))
 MIN_ITEMS = int(os.environ.get("MIN_ITEMS", "100"))
 MAX_BODY = 1_000_000
 STORAGE_URL = os.environ.get("LEADERBOARD_STORAGE_URL", "")
+CLOSED_MESSAGE = ("The leaderboard is closed and is not accepting submissions right now. "
+                  "Please wait until your coach tells you it is open again, then submit your run.")
 
 store = LocalStore(DATA_DIR)
 
@@ -285,7 +289,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         subs = store.load(key)
         if path == "/api/leaderboard":
-            return self._send(200, build_leaderboard(subs))
+            board = build_leaderboard(subs)
+            board["submissions_open"] = store.is_open(key)
+            return self._send(200, board)
         if path == "/api/submissions":
             return self._send(200, [{k: v for k, v in s.items() if k != "strategy"} for s in subs])
         if path == "/api/submissions/export":
@@ -325,11 +331,22 @@ class Handler(BaseHTTPRequestHandler):
                 return
             store.reset(key)
             return self._send(200, {"reset": True})
+        if path in ("/api/leaderboard/start", "/api/leaderboard/stop"):
+            if not self._authorize_admin():
+                return
+            key = self._selected_key()
+            if key is None:
+                return
+            submissions_open = path.endswith("/start")
+            store.set_open(key, submissions_open)
+            return self._send(200, {"submissions_open": submissions_open})
         if path != "/api/submissions":
             return self._send(404, {"error": "not found"})
         key = self._selected_key()
         if key is None:
             return
+        if not store.is_open(key):
+            return self._send(423, {"accepted": False, "submissions_open": False, "error": CLOSED_MESSAGE})
         body = self._body()
         if body is None:
             return
@@ -398,8 +415,12 @@ h2{font-size:13px;letter-spacing:.25em;text-transform:uppercase;color:var(--red)
 .invalid td{opacity:.6}.empty{text-align:center;color:var(--dim);padding:40px;font-size:18px}
 footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 30px}
 .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime);margin-right:6px;animation:p 1.6s infinite}@keyframes p{50%{opacity:.25}}
+.state{display:inline-block;margin-top:16px;padding:8px 18px;border-radius:99px;border:1px solid var(--dim);color:var(--dim);font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:13px}
+.state.open{color:var(--lime);border-color:var(--lime);box-shadow:0 0 14px #b6ff3b55}
+.state.closed{color:var(--red);border-color:var(--red);box-shadow:0 0 14px #ff4d6d66}
 </style></head><body><div class="grid"></div>
-<header><h1>Token Wars</h1><div class="sub">Build · Route · Optimize — lowest cost per successful answer wins</div></header>
+<header><h1>Token Wars</h1><div class="sub">Build · Route · Optimize — lowest cost per successful answer wins</div>
+<div id="submission-state" class="state" role="status" aria-live="polite">Submissions –</div></header>
 <section class="stats">
  <div class="stat"><b id="s-teams">–</b><span>teams</span></div>
  <div class="stat"><b id="s-subs">–</b><span>submissions</span></div>
@@ -413,6 +434,8 @@ footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 30px}
   <button id="add-board" type="button">Add leaderboardKey</button>
  </div>
  <div class="actions" aria-label="Leaderboard administration">
+  <button id="start" type="button">Start submissions</button>
+  <button id="stop" type="button" class="danger">Stop submissions</button>
   <button id="download" type="button">Download submissions</button>
   <button id="reset" type="button" class="danger">Reset leaderboard</button>
  </div>
@@ -459,7 +482,17 @@ function row(r,invalid){
 }
 let refreshVersion=0;
 let selectedKey='';
+let submissionsOpen=null;
+function renderSubmissionState(){
+  const state=document.getElementById('submission-state');
+  state.className='state'+(submissionsOpen===true?' open':submissionsOpen===false?' closed':'');
+  state.textContent=submissionsOpen===true?'Submissions open':
+    submissionsOpen===false?'Submissions closed — wait for your coach':'Submissions –';
+}
 function renderBoard(d){
+    submissionsOpen=typeof d.submissions_open==='boolean'?d.submissions_open:null;
+    renderSubmissionState();
+    updateControls();
     document.getElementById('s-teams').textContent=d.teams;
     document.getElementById('s-subs').textContent=d.total_submissions;
     document.getElementById('s-best').textContent=d.ranked.length?usd(d.ranked[0].cost_per_success_usd,5):'–';
@@ -495,6 +528,8 @@ async function refresh(){
 const adminEnabled=__ADMIN_ENABLED__;
 const downloadButton=document.getElementById('download');
 const resetButton=document.getElementById('reset');
+const startButton=document.getElementById('start');
+const stopButton=document.getElementById('stop');
 const addButton=document.getElementById('add-board');
 const boardSelect=document.getElementById('leaderboard-select');
 const newKey=document.getElementById('new-key');
@@ -509,6 +544,8 @@ let adminBusy=false;
 let actionBoard='';
 function updateControls(){
   downloadButton.disabled=resetButton.disabled=!adminEnabled||adminBusy||!selectedKey;
+  startButton.disabled=!adminEnabled||adminBusy||!selectedKey||submissionsOpen===true;
+  stopButton.disabled=!adminEnabled||adminBusy||!selectedKey||submissionsOpen===false;
   addButton.disabled=!adminEnabled||adminBusy;
   boardSelect.disabled=adminBusy||!boardSelect.options.length||!boardSelect.value;
 }
@@ -564,18 +601,21 @@ function showAdmin(action){
   actionBoard=selectedKey;
   const resetting=action==='reset';
   const creating=action==='create';
-  const titles={reset:'Reset leaderboard',download:'Download submissions',create:'Add leaderboardKey'};
+  const titles={reset:'Reset leaderboard',download:'Download submissions',create:'Add leaderboardKey',
+    start:'Start submissions',stop:'Stop submissions'};
   document.getElementById('admin-title').textContent=titles[action];
   document.getElementById('admin-description').textContent={
     reset:'Permanently delete ALL submissions in the SELECTED leaderboard only? Other leaderboards are not affected. This cannot be undone. Download a backup first.',
     download:'Download all submissions in the selected leaderboard as JSON, including strategies and valid and invalid runs.',
-    create:'Create an empty private container, ready for participant submissions. Existing leaderboards will not be changed.'
+    create:'Create an empty private container, ready for participant submissions. Existing leaderboards will not be changed.',
+    start:'Open the SELECTED leaderboard so participants can submit their runs again.',
+    stop:'Close the SELECTED leaderboard. New submissions will be refused and participants will be told to wait for their coach. Existing results are kept.'
   }[action];
   document.getElementById('new-key-field').hidden=!creating;
   newKey.required=creating;
   newKey.value='';
   adminConfirm.textContent=resetting?'Confirm reset':titles[action];
-  adminConfirm.classList.toggle('danger',resetting);
+  adminConfirm.classList.toggle('danger',resetting||action==='stop');
   adminError.textContent='';
   adminKey.value='';
   adminDialog.showModal();
@@ -583,6 +623,8 @@ function showAdmin(action){
 updateControls();
 downloadButton.addEventListener('click',()=>showAdmin('download'));
 resetButton.addEventListener('click',()=>showAdmin('reset'));
+startButton.addEventListener('click',()=>showAdmin('start'));
+stopButton.addEventListener('click',()=>showAdmin('stop'));
 addButton.addEventListener('click',()=>showAdmin('create'));
 adminCancel.addEventListener('click',()=>adminDialog.close());
 adminDialog.addEventListener('cancel',event=>{if(adminBusy)event.preventDefault();});
@@ -600,9 +642,12 @@ document.getElementById('admin-form').addEventListener('submit',async event=>{
   try{
     const resetting=adminAction==='reset';
     const creating=adminAction==='create';
+    const toggling=adminAction==='start'||adminAction==='stop';
     const createdKey=newKey.value;
-    const response=await fetch(creating?'/api/leaderboards':resetting?'/api/leaderboard/reset':'/api/submissions/export',{
-      method:resetting||creating?'POST':'GET',
+    const url=creating?'/api/leaderboards':resetting?'/api/leaderboard/reset':
+      toggling?'/api/leaderboard/'+adminAction:'/api/submissions/export';
+    const response=await fetch(url,{
+      method:resetting||creating||toggling?'POST':'GET',
       headers:{'x-admin-key':key,...(creating?{'Content-Type':'application/json'}:{'x-submit-key':actionBoard})},
       ...(creating?{body:JSON.stringify({leaderboardKey:createdKey})}:{}),cache:'no-store'
     });
@@ -620,6 +665,11 @@ document.getElementById('admin-form').addEventListener('submit',async event=>{
       const refreshed=await refresh();
       actionStatus.textContent=refreshed?'Selected leaderboard reset.':
         'Leaderboard reset, but the page could not refresh. Reload the page.';
+    }else if(toggling){
+      const refreshed=await refresh();
+      actionStatus.textContent=(adminAction==='start'?'Submissions opened for the selected leaderboard.':
+        'Submissions stopped. Participants are told to wait for their coach.')+
+        (refreshed?'':' The page could not refresh. Reload the page.');
     }else{
       const blob=await response.blob();
       const url=URL.createObjectURL(blob);

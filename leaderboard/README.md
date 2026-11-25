@@ -10,6 +10,7 @@ the big screen shows the ranking at `/` (auto-refresh every 10 s).
 - **Add leaderboardKey** asks for the admin key and a new event key, creates an empty private container and selects it. Duplicate creation returns `409` without modifying existing data. Share each key only with that event's participants.
 - The ranking shown is the board selected in the combo; participants can open the page and pick their event. Existing Python/.NET submissions continue using `TOKENWARS_LEADERBOARD_KEY` as the `x-submit-key` header.
 - **Download submissions** downloads a timestamped JSON file containing **all** stored runs in the selected leaderboard (valid and invalid, not just each team's best), including their strategies and metrics. Submitted source code is not stored.
+- **Start submissions** / **Stop submissions** open or close the selected leaderboard to new runs (admin key required). The page shows a **Submissions open / closed** badge for everyone. While closed, `POST /api/submissions` returns `423` with a message asking participants to wait until their coach tells them the leaderboard is open; nothing is stored and existing results stay visible. The state is persisted per leaderboard (shared by all replicas), survives restarts and **Reset leaderboard**, and only affects the selected board. Boards are open by default, including boards created before this feature.
 - **Reset leaderboard** asks for confirmation and the admin key, then permanently removes **only the selected leaderboard's submissions and rankings**. The empty container/key remains ready for new submissions. Other leaderboards are unaffected. Download a backup first; there is no undo. No restart is needed.
 - Coach actions require `LEADERBOARD_ADMIN_KEY`, entered in a password dialog for each action. Admin credentials are cleared after use and never stored. The selected leaderboardKey is kept in the tab's `sessionStorage` (not URLs or `localStorage`), so a reload restores it; closing the tab forgets it. Use HTTPS outside localhost.
 - Set a strong admin key **different from** `LEADERBOARD_SUBMIT_KEY` and keep it coach-only. Without an admin key, the buttons are disabled and the administrative API returns `503`.
@@ -31,11 +32,13 @@ Only the coach can register new keys; a participant submission never creates a c
 |---|---|---|
 | GET | `/api/leaderboards` | `{"leaderboardKeys": [...]}`; public (used by the page selector). |
 | POST | `/api/leaderboards` | JSON `{"leaderboardKey":"<new-event-key>"}`; requires `x-admin-key`. Returns `201` when created, `409` if already registered, `400` for an invalid key. |
-| POST | `/api/submissions` | JSON `{"team","language","variant","timestamp","mock","strategy","summary"}`. Returns `201` with rank/validity after durable storage, `400` for malformed/mock runs. |
-| GET | `/api/leaderboard` | `{"ranked": [...], "invalid": [...], "teams", "total_submissions", ...}` |
+| POST | `/api/submissions` | JSON `{"team","language","variant","timestamp","mock","strategy","summary"}`. Returns `201` with rank/validity after durable storage, `400` for malformed/mock runs, `423` while the coach has stopped submissions. |
+| GET | `/api/leaderboard` | `{"ranked": [...], "invalid": [...], "teams", "total_submissions", "submissions_open", ...}` |
 | GET | `/api/submissions` | All stored submissions (without strategy), for debugging. |
 | GET | `/api/submissions/export` | JSON attachment containing every stored submission, including strategy; requires `x-admin-key`. |
 | POST | `/api/leaderboard/reset` | Permanently clear the selected board only; requires `x-admin-key`. Returns `200` with `{"reset": true}`. |
+| POST | `/api/leaderboard/start` | Accept new submissions on the selected board; requires `x-admin-key`. Returns `200` with `{"submissions_open": true}`. |
+| POST | `/api/leaderboard/stop` | Refuse new submissions on the selected board (`423` for participants); requires `x-admin-key`. Returns `200` with `{"submissions_open": false}`. |
 | GET | `/healthz` | Liveness probe. |
 | GET | `/` | Neon leaderboard page. |
 
@@ -46,6 +49,7 @@ Keys are case-sensitive, 1-128 printable ASCII characters without spaces, and mu
 ## Persistence
 - Azure mode uses **one private container per leaderboardKey**, named `twlb-<SHA-256 prefix>` to support keys that are not valid Azure container names. Its private metadata records the key for the coach's selector.
 - Accepted runs, including below-quality-bar runs, live in that container's `submissions.json`. Validity/ranking rules are unchanged. Empty containers are valid leaderboards even before the first submission.
+- The open/closed submission state is stored in the container's private metadata (`submissions_open`; missing means open).
 - No expiry, TTL, background cleanup or lifecycle deletion is configured. Restarting, scaling or redeploying the app does not clear results. Conditional ETag writes prevent concurrent replicas from overwriting one another's accepted runs.
 - The application removes submissions only on an explicit, authenticated **Reset leaderboard**. Azure owners can still delete data outside the application; Terraform guards against accidental storage destruction but cannot prevent owner actions.
 - When `LEADERBOARD_STORAGE_URL` is configured, storage/auth failures **never fall back to ephemeral local disk**.
