@@ -60,11 +60,26 @@ Microsoft-Decision-1 is deprecated. Its quota-unit conversion is model-specific:
 TPM conversion. Terraform always deploys it, even if teams skip optional TODOs 3.2b and 3.3b.
 
 ```bash
+cd infra
+cp terraform.tfvars.example terraform.tfvars        # set team_name; uncomment model overrides only if you need them
+pwsh ./scripts/check-model-prereqs.ps1              # Bash: bash ./scripts/check-model-prereqs.sh (bash + awk + az only)
+pwsh ./scripts/check-model-prereqs.ps1 -ScanRegions # if something fails: regions where every model fits
+```
+
+The script takes the original values in `variables.tf` plus the overrides active in `terraform.tfvars` (it shows which
+values come from where) and checks, per region: model name / format / version in the catalog, deployment types offered
+(GlobalStandard = Global, DataZoneStandard = Data Zone, Standard = Regional), max capacity, retirement dates and free
+quota (summed per quota pool). Every fix is printed both as a `terraform.tfvars` override and as the original value to
+change in `variables.tf` (file:line); change it where you prefer and re-run. Run it before `terraform apply`: quota
+"used" includes your own deployments once they exist. Manual equivalent:
+
+```bash
 az cognitiveservices model list --location swedencentral \
   --query "[?contains(model.name,'gpt-5.6-') || model.name=='gpt-5.5' || model.name=='Microsoft-Decision-1.1' || contains(model.name,'text-embedding-3-small') || contains(model.name,'Llama-3.3')].{name:model.name, version:model.version, format:model.format}" -o table
 az cognitiveservices usage list --location swedencentral -o table      # current usage vs limit per model + SKU
 ```
 
+- [ ] `check-model-prereqs` reports **0 blockers** (exit code 0) for your `variables.tf` + `terraform.tfvars`.
 - [ ] gpt-5.6-sol (2026-07-09), gpt-5.6-terra and gpt-5.6-luna (2026-07-09) are listed and have enough GlobalStandard quota.
 - [ ] gpt-5.5 (2026-04-24) is available with 800K TPM quota for `judge`; it does not share Terra's model allocation.
 - [ ] Microsoft-Decision-1.1 version 1 is available with quota. If not, resolve access/region before setup; do not remove its required deployment.

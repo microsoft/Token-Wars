@@ -152,7 +152,8 @@ These tests live outside the module's default test directory to preserve Terrafo
 ├── infra/                    Terraform: Microsoft Foundry resource + project + model deployments, APIM AI gateway,
 │   │                         monitoring, optional Ollama on Container Apps, optional secondary region
 │   ├── fireworks.tf          optional Fireworks on Foundry deployments (Challenge 2.4, deploy_fireworks = true)
-│   ├── scripts/              check-fireworks-prereqs.sh / .ps1 (feature registration, roles, region, model list)
+│   ├── scripts/              check-model-prereqs.sh / .ps1 (model availability, deployment type, quota -> tfvars / variables.tf fixes)
+│   │                         check-fireworks-prereqs.sh / .ps1 (feature registration, roles, region, model list)
 │   ├── shared/               coach-only exception for teams without a subscription: one APIM per team in front of
 │   │                         the coach's models (deploy_teams.py, set_policy.py)
 │   └── policies/             APIM policy templates: ai-gateway-starter.xml (TODO 3.5) / ai-gateway-solution.xml /
@@ -190,9 +191,19 @@ Full list with commands and timing: [`coach/pre-event-checklist.md`](coach/pre-e
   (`Microsoft.CognitiveServices`, `Microsoft.ApiManagement`, `Microsoft.OperationalInsights`, `Microsoft.Insights`,
   `Microsoft.App`) itself.
 - Model quota in your region (default `swedencentral`) for `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`,
-  `gpt-5.5` (independent judge), `text-embedding-3-small` and `Llama-3.3-70B-Instruct` (GlobalStandard). Check with
-  `az cognitiveservices model list --location swedencentral -o table`, `az cognitiveservices usage list --location swedencentral -o table`
-  and the Foundry portal's *Quota* page.
+  `gpt-5.5` (independent judge), `text-embedding-3-small` and `Llama-3.3-70B-Instruct` (GlobalStandard). Check it with
+  the model prerequisite script before `terraform apply`: it takes the original values in `infra/variables.tf` plus the
+  overrides you uncommented in `infra/terraform.tfvars`, validates per region catalog availability, deployment type
+  (Global / Data Zone / Regional), free quota and retirement dates, and prints every fix both as a `terraform.tfvars`
+  override and as the original value to change in `variables.tf` (file:line). You choose where to change it and re-run:
+
+  ```bash
+  ./infra/scripts/check-model-prereqs.ps1                 # PowerShell; add -ScanRegions to find regions where every model fits
+  bash ./infra/scripts/check-model-prereqs.sh             # Bash (bash + awk + az, no PowerShell needed); add --scan-regions
+  ```
+
+  Manual alternative: `az cognitiveservices model list --location swedencentral -o table`,
+  `az cognitiveservices usage list --location swedencentral -o table` and the Foundry portal's *Quota* page.
 - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli), [Terraform ≥ 1.6](https://developer.hashicorp.com/terraform/install)
   (the Azure Developer CLI `azd` is not needed).
 - **Either** Python 3.10+ (`pip install requests`) **or** .NET 8 SDK (or newer).

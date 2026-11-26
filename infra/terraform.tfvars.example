@@ -25,7 +25,10 @@ leaderboard_key = "tokenwars"
 # GPT-5.6 answer models and the GPT-5.5 judge are written to models.json with
 # max_tokens_param = "max_completion_tokens", supports_temperature = false, extra_body = { reasoning_effort = "none" }.
 #
-# Verify availability/quota in your region first:
+# Verify availability/quota in your region first (reads variables.tf + the overrides in this file; prints each fix
+# as an override for this file and as the original value to change in variables.tf):
+#   ./scripts/check-model-prereqs.ps1 [-ScanRegions]        (Bash: bash ./scripts/check-model-prereqs.sh [--scan-regions])
+# Manual alternative:
 #   az cognitiveservices model list --location swedencentral --query "[].{name:model.name, version:model.version, format:model.format}" -o table
 #   az cognitiveservices usage list --location swedencentral -o table
 # Capacity = thousands of tokens per minute (TPM). The baseline is token-hungry: keep the premium capacity high

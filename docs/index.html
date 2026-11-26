@@ -661,7 +661,7 @@ tr.grp th{background:rgba(125,249,255,.06);color:var(--cyan);font:700 .74rem var
     <ul class="ticks">
       <li><strong>Your team's own Azure subscription</strong> (pay-as-you-go is enough; nothing in the kit needs PTU) where you can create a resource group, a Microsoft Foundry resource + project with model deployments and, optionally, API Management and Container Apps.</li>
       <li>Rights to create <strong>role assignments</strong> and register resource providers (e.g. Owner, or Contributor + User Access Administrator). The APIM managed identity is granted "Cognitive Services OpenAI User" and "Cognitive Services User" on every Foundry resource.</li>
-      <li>Model quota in your region (default <code>swedencentral</code>) for gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, text-embedding-3-small and Llama-3.3-70B-Instruct (unless you set <code>deploy_open_model = false</code>).</li>
+      <li>Model quota in your region (default <code>swedencentral</code>) for gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, text-embedding-3-small and Llama-3.3-70B-Instruct (unless you set <code>deploy_open_model = false</code>). Verify it with the <a href="#prereq-models">model check</a> below.</li>
       <li>From your coach: your <strong>team name</strong>, the <strong>leaderboard URL</strong> and, if used, a submit key.</li>
       <li><em>Optional, for the <a href="#step-2-4">Fireworks Arena (2.4)</a>:</em> the subscription feature <code>Fireworks.EnableDeploy</code> registered by a Subscription Owner/Contributor (up to 30 min) <strong>before</strong> the event day, a US region, and the deployer role on the Fireworks project.</li>
     </ul>
@@ -682,11 +682,38 @@ terraform version
 dotnet --version        # 8.0 or newer</code></pre></div>
   </div>
 </div>
+<h3 id="prereq-models">Check models, quota and deployment types</h3>
+<p>Before the event, after <code>az login</code> and <strong>before</strong> <code>terraform apply</code>, run <code>infra/scripts/check-model-prereqs.ps1</code> (PowerShell) or <code>infra/scripts/check-model-prereqs.sh</code> (Bash; needs only bash, awk and <code>az</code>, no PowerShell). Both scripts run the same checks and print the same output. They build the configuration you are about to deploy: the original values in <code>infra/variables.tf</code> plus the overrides you uncommented in <code>infra/terraform.tfvars</code> (tfvars wins), including the secondary region and Fireworks when enabled. They show where each value comes from and check every model in its region:</p>
+<ul class="ticks">
+  <li><strong>Availability</strong>: model name (case-sensitive), format and version are in the regional catalog; otherwise it lists similar models offered there.</li>
+  <li><strong>Deployment type</strong>: the types offered for that model version: <code>GlobalStandard</code> (Global), <code>DataZoneStandard</code> (Data Zone) and <code>Standard</code> (Regional). PTU and Batch types are listed but never used by the kit. Retirement dates and the maximum capacity per deployment are checked too.</li>
+  <li><strong>Quota</strong>: free quota (limit − used) per quota pool against the requested <code>capacity</code>; deployments sharing a pool are added up. "Used" includes every deployment that already exists in the subscription and region (your own too if you already applied).</li>
+  <li><strong>How to fix it</strong>: every fix (<code>sku</code>, <code>capacity</code>, <code>version</code>, <code>name</code>) is printed both ways: <strong>a)</strong> as an override for <code>terraform.tfvars</code>, merged with the overrides you already have, and <strong>b)</strong> as the original value to change in <code>variables.tf</code> (with its line number). You choose where to change it. A <code>variables.tf</code> change has no effect for a value that <code>terraform.tfvars</code> overrides; the script flags those. With <code>-ScanRegions</code> it also searches the regions where every model fits and suggests the <code>location</code> (or <code>secondary_location</code> / <code>fireworks_location</code>) to use.</li>
+</ul>
+<div class="shell-pair"><div class="code"><div class="code-head"><span class="code-label">PowerShell · model check (repository root)</span><button type="button" class="copy-btn" aria-label="Copy code to clipboard">Copy</button></div><pre data-shell="powershell"><code>./infra/scripts/check-model-prereqs.ps1                  # [-Location francecentral] [-Subscription &lt;id&gt;]
+./infra/scripts/check-model-prereqs.ps1 -ScanRegions     # also find regions where every model fits</code></pre></div><div class="code"><div class="code-head"><span class="code-label">Bash · model check (repository root)</span><button type="button" class="copy-btn" aria-label="Copy code to clipboard">Copy</button></div><pre data-shell="bash"><code>bash ./infra/scripts/check-model-prereqs.sh              # [--location francecentral] [--subscription &lt;id&gt;]
+bash ./infra/scripts/check-model-prereqs.sh --scan-regions</code></pre></div></div>
+<div class="code"><div class="code-head"><span class="code-label">example output (end)</span><button type="button" class="copy-btn" aria-label="Copy code to clipboard">Copy</button></div><pre><code>Suggested changes - each fix as a) terraform.tfvars override or b) original value in variables.tf:
+  Option A - keep the current regions:
+    # premium: not enough GlobalStandard quota, DataZoneStandard has 1000 free
+    # embedding: GlobalStandard not offered, Standard has quota
+    a) override in terraform.tfvars (takes precedence over variables.tf):
+      premium_model = { capacity = 600, sku = "DataZoneStandard" }
+      embedding_model = { sku = "Standard" }
+    b) or change the original value in variables.tf:
+      variables.tf:90    variable "premium_model": sku = optional(string, "DataZoneStandard")
+      variables.tf:203   variable "embedding_model": sku = optional(string, "Standard")
+  Option B - move the primary Foundry resource to francecentral:
+    a) override in terraform.tfvars (takes precedence over variables.tf):
+      location = "francecentral"
+    b) or change the original value in variables.tf:
+      variables.tf:23    variable "location" { default = "francecentral" }</code></pre></div>
+<p class="muted small">Read-only: it never creates resources or edits files. Exit code 0 = no blockers. Apply the fix in <code>terraform.tfvars</code> or <code>variables.tf</code> and re-run it until it reports 0 blockers. Changing <code>capacity</code> of a chat tier? Lower <code>"concurrency"</code> in <code>strategy.json</code> as well. The Fireworks feature registration and roles are checked separately by <code>check-fireworks-prereqs</code> (<a href="#step-2-4">2.4</a>).</p>
 <div class="callout warn" id="no-subscription"><strong>If you don't have an Azure subscription…</strong> your coach can run the <em>shared-infrastructure mode</em> for your team. You only need Git, an editor and Python 3.10+ / .NET 8 (no <code>az</code>, no Terraform, no quota, no Fireworks registration). Give your coach your team name before the event; you'll receive two files instead of deploying anything. See <a href="#step-setup">Step 0</a> for how to use them.</div>
 <h3>Repository map</h3>
 <div class="code"><div class="code-head"><span class="code-label">repo layout</span><button type="button" class="copy-btn" aria-label="Copy code to clipboard">Copy</button></div><pre><code>token-wars-microhack/
 ├── .env                      # generated by terraform (git-ignored)
-├── infra/                    # Terraform + policies/ai-gateway-*.xml + scripts/check-fireworks-prereqs.*
+├── infra/                    # Terraform + policies/ai-gateway-*.xml + scripts/check-model-prereqs.* + scripts/check-fireworks-prereqs.*
 ├── shared/
 │   ├── knowledge-base/*.md   # ByteCart policies
 │   ├── data/orders.json  data/workload.jsonl
@@ -786,7 +813,10 @@ location = "swedencentral"
 # GPT-5.6 answer models and the GPT-5.5 judge are written to models.json with
 # max_tokens_param = "max_completion_tokens", supports_temperature = false, extra_body = { reasoning_effort = "none" }.
 #
-# Verify availability/quota in your region first:
+# Verify availability/quota in your region first (reads variables.tf + the overrides in this file; prints each fix
+# as an override for this file and as the original value to change in variables.tf):
+#   ./scripts/check-model-prereqs.ps1 [-ScanRegions]        (Bash: bash ./scripts/check-model-prereqs.sh [--scan-regions])
+# Manual alternative:
 #   az cognitiveservices model list --location swedencentral --query "[].{name:model.name, version:model.version, format:model.format}" -o table
 #   az cognitiveservices usage list --location swedencentral -o table
 # Capacity = thousands of tokens per minute (TPM). The baseline is token-hungry: keep the premium capacity high
